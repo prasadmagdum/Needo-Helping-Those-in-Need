@@ -20,6 +20,13 @@ router.post("/:donationId", auth, requireRole("ngo"), async (req, res) => {
         .status(404)
         .json({ msg: "NGO profile not found. Complete your profile first." });
 
+    // 🛡️ NEW SECURITY: block unverified NGOs
+    if (!ngo.verified) {
+      return res.status(403).json({
+        msg: "Your NGO is not verified yet. Please wait for admin approval before accepting donations.",
+      });
+    }
+
     // locate donor that owns this subdoc
     const donor = await Donor.findOne({ "donations._id": req.params.donationId });
     if (!donor) return res.status(404).json({ msg: "Donation not found" });
@@ -49,6 +56,7 @@ router.post("/:donationId", auth, requireRole("ngo"), async (req, res) => {
 
     res.status(201).json({ msg: "Donation accepted", accept });
   } catch (e) {
+    console.error("Accept donation error:", e);
     res.status(500).json({ msg: "Server error" });
   }
 });
@@ -102,7 +110,6 @@ router.put(
 /**
  * GET /api/accept/my
  * NGO views their accepted pickups (with donation + donor info)
- * Donor can also use this enriched info in "My Donations"
  */
 router.get("/my", auth, requireRole("ngo"), async (req, res) => {
   try {
@@ -138,7 +145,7 @@ router.get("/my", auth, requireRole("ngo"), async (req, res) => {
               org_name: donor.org_name,
               user_name: donor.user_id?.name,
               user_email: donor.user_id?.email,
-              user_phone: donor.user_id?.phone, // ✅ donor phone
+              user_phone: donor.user_id?.phone,
             }
           : null,
         ngo: ngo
@@ -148,7 +155,7 @@ router.get("/my", auth, requireRole("ngo"), async (req, res) => {
               registration_no: ngo.registration_no,
               user_name: ngo.user_id?.name,
               user_email: ngo.user_id?.email,
-              user_phone: ngo.user_id?.phone, // ✅ ngo phone
+              user_phone: ngo.user_id?.phone,
             }
           : null,
         donation,

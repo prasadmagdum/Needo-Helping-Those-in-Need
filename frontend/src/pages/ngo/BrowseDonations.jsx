@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { Package, MessageCircle } from "lucide-react"; // ✅ added MessageCircle
+import { Package, MessageCircle } from "lucide-react";
 import API from "../../api/axios";
 import toast from "react-hot-toast";
+import { useAuth } from "../../context/AuthContext"; // ✅ added
 
 const BrowseDonations = () => {
+  const { user } = useAuth(); // ✅ NGO verification awareness
   const [donations, setDonations] = useState([]);
   const [filterStatus, setFilterStatus] = useState("All");
 
@@ -24,6 +26,11 @@ const BrowseDonations = () => {
   }, []);
 
   const handleAcceptPickup = async (donationId) => {
+    if (user?.role === "ngo" && !user?.verified) {
+      toast.error("Your NGO is not verified yet. Please wait for admin approval.");
+      return;
+    }
+
     try {
       await API.post(`/accept/${donationId}`);
       toast.success("Pickup accepted successfully!");
@@ -44,7 +51,6 @@ const BrowseDonations = () => {
     window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, "_blank");
   };
 
-  // ✅ NEW → Open WhatsApp
   const openWhatsApp = (phone, name, title) => {
     if (!phone) return toast.error("WhatsApp number not available");
     const msg = `Hello ${name || "Donor"}, I am interested in your donation (${title}).`;
@@ -71,6 +77,13 @@ const BrowseDonations = () => {
         <Package className="text-yellow-500" />
         Available Donations
       </h2>
+
+      {/* 🟡 NGO verification warning */}
+      {user?.role === "ngo" && !user?.verified && (
+        <div className="bg-yellow-100 border border-yellow-300 text-yellow-800 px-4 py-3 rounded-lg mb-6">
+          ⚠️ Your NGO verification is pending. You cannot accept donations until approved by the admin.
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex bg-yellow-50 border border-yellow-200 rounded-full w-fit mb-6 overflow-hidden">
@@ -128,17 +141,31 @@ const BrowseDonations = () => {
                   {statusMap[donation.status] === "Pending" && (
                     <button
                       onClick={() => handleAcceptPickup(donation._id)}
-                      className="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600"
+                      disabled={user?.role === "ngo" && !user?.verified}
+                      className={`px-4 py-2 rounded-md text-white ${
+                        user?.role === "ngo" && !user?.verified
+                          ? "bg-gray-300 cursor-not-allowed"
+                          : "bg-orange-500 hover:bg-orange-600"
+                      }`}
+                      title={
+                        user?.role === "ngo" && !user?.verified
+                          ? "Your NGO is pending verification."
+                          : "Accept this donation"
+                      }
                     >
                       Accept Pickup
                     </button>
                   )}
 
-                  {/* ✅ WhatsApp Button */}
+                  {/* WhatsApp Button */}
                   {donation.donor?.user_phone && (
                     <button
                       onClick={() =>
-                        openWhatsApp(donation.donor.user_phone, donation.donor.user_name, donation.title)
+                        openWhatsApp(
+                          donation.donor.user_phone,
+                          donation.donor.user_name,
+                          donation.title
+                        )
                       }
                       className="flex items-center justify-center gap-2 bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
                     >

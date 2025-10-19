@@ -1,3 +1,4 @@
+// backend/routes/admin.js
 const express = require("express");
 const User = require("../models/User");
 const NGO = require("../models/NGO");
@@ -7,6 +8,7 @@ const auth = require("../middleware/authMiddleware");
 const requireRole = require("../middleware/role");
 const fs = require("fs");
 const path = require("path");
+const upload = require("../middleware/uplod"); // ✅ multer for certificate handling
 
 const router = express.Router();
 
@@ -15,7 +17,6 @@ router.use(auth, requireRole("admin"));
 
 /**
  * 1. Dashboard Overview
- * GET /api/admin/stats
  */
 router.get("/stats", async (req, res) => {
   try {
@@ -50,35 +51,30 @@ router.get("/stats", async (req, res) => {
 /**
  * 2. User Management
  */
-// GET all users
 router.get("/users", async (req, res) => {
   try {
     const users = await User.find().select("-password_hash");
     res.json(users);
-  } catch (e) {
+  } catch {
     res.status(500).json({ msg: "Server error" });
   }
 });
 
-// Block / Unblock user (toggle with blocked: true/false)
 router.put("/users/:id/block", async (req, res) => {
   try {
-    const { blocked } = req.body; // expects { blocked: true/false }
+    const { blocked } = req.body;
     const user = await User.findByIdAndUpdate(
       req.params.id,
       { blocked },
       { new: true }
     ).select("-password_hash");
-
     if (!user) return res.status(404).json({ msg: "User not found" });
-
     res.json({ msg: `User ${blocked ? "blocked" : "unblocked"}`, user });
   } catch {
     res.status(500).json({ msg: "Server error" });
   }
 });
 
-// Delete user
 router.delete("/users/:id", async (req, res) => {
   try {
     await User.findByIdAndDelete(req.params.id);
@@ -91,40 +87,63 @@ router.delete("/users/:id", async (req, res) => {
 /**
  * 3. NGO Verification
  */
-// Get NGOs (filter pending)
+
+// 🟢 Get NGOs (filter pending, verified, rejected)
 router.get("/ngos", async (req, res) => {
   try {
     const status = req.query.status;
-    let ngos;
-    if (status === "pending") {
-      ngos = await NGO.find({ verified: false }).populate("user_id", "name email phone");
-    } else {
-      ngos = await NGO.find().populate("user_id", "name email phone");
-    }
+    let filter = {};
+    if (status === "pending") filter.status = "pending";
+    else if (status === "verified") filter.status = "verified";
+    else if (status === "rejected") filter.status = "rejected";
+
+    const ngos = await NGO.find(filter)
+      .populate("user_id", "name email phone")
+      .sort({ createdAt: -1 });
+
     res.json(ngos);
   } catch {
     res.status(500).json({ msg: "Server error" });
   }
 });
 
-// Verify / Unverify NGO
-router.put("/ngos/:id/verify", async (req, res) => {
+// 🟢 Verify NGO + optional certificate upload (Admin)
+router.put("/ngos/:id/verify", upload.single("certificate"), async (req, res) => {
   try {
-    const { verified } = req.body; // expects { verified: true/false }
-    const ngo = await NGO.findByIdAndUpdate(req.params.id, { verified }, { new: true });
+    const ngo = await NGO.findById(req.params.id);
     if (!ngo) return res.status(404).json({ msg: "NGO not found" });
 
-    res.json({ msg: `NGO ${verified ? "verified" : "unverified"}`, ngo });
-  } catch {
+    // Save uploaded certificate if provided
+    if (req.file) {
+      const certPath = `/uploads/certificates/${req.file.filename}`;
+      ngo.certificateUrl = certPath;
+    }
+
+    // Update verification details
+    ngo.status = "verified";
+    ngo.verified = true;
+    ngo.verifiedBy = req.user.id;
+    ngo.verifiedAt = new Date();
+
+    await ngo.save();
+    res.json({ msg: "NGO verified successfully", ngo });
+  } catch (err) {
+    console.error("Verify NGO error:", err);
     res.status(500).json({ msg: "Server error" });
   }
 });
 
-// Reject NGO (delete)
+// 🟡 Reject NGO
 router.delete("/ngos/:id/reject", async (req, res) => {
   try {
-    await NGO.findByIdAndDelete(req.params.id);
-    res.json({ msg: "NGO rejected and deleted" });
+    const ngo = await NGO.findById(req.params.id);
+    if (!ngo) return res.status(404).json({ msg: "NGO not found" });
+
+    ngo.status = "rejected";
+    ngo.verified = false;
+    await ngo.save();
+
+    res.json({ msg: "NGO rejected", ngo });
   } catch {
     res.status(500).json({ msg: "Server error" });
   }
@@ -133,7 +152,6 @@ router.delete("/ngos/:id/reject", async (req, res) => {
 /**
  * 4. Donation Management
  */
-// Get all donations
 router.get("/donations", async (req, res) => {
   try {
     const donors = await Donor.find().populate("user_id", "name email phone");
@@ -158,7 +176,6 @@ router.get("/donations", async (req, res) => {
   }
 });
 
-// Delete donation
 router.delete("/donations/:donationId", async (req, res) => {
   try {
     const donor = await Donor.findOne({ "donations._id": req.params.donationId });

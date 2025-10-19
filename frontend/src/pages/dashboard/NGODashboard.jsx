@@ -17,59 +17,49 @@ const NGODashboard = () => {
   const [active, setActive] = useState([]);
   const [available, setAvailable] = useState([]);
   const [recent, setRecent] = useState([]);
+  const [profile, setProfile] = useState(null); // ✅ added
 
+  // 🧩 Fetch NGO profile (to show verification status)
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        if (user?.role !== "ngo") return;
+        const { data } = await API.get("/users/me");
+        setProfile(data.profile || null);
+      } catch {
+        console.warn("Failed to load NGO profile status");
+      }
+    };
+    loadProfile();
+  }, [user]);
+
+  // Load NGO dashboard stats
   useEffect(() => {
     const load = async () => {
       try {
-        // ✅ NGO-only safeguard
         if (user?.role !== "ngo") {
           setLoading(false);
           return;
         }
 
-        // Fetch data
         const { data: accepted = [] } = await API.get("/accept/my");
-        const { data: availableDonations = [] } = await API.get(
-          "/donations?excludeMine=true"
-        );
+        const { data: availableDonations = [] } = await API.get("/donations?excludeMine=true");
 
-        // Impact stats
         const total = accepted?.length || 0;
-        const delivered =
-          accepted?.filter((a) => a.status === "delivered")?.length || 0;
-        const lives =
-          accepted?.reduce(
-            (sum, a) => sum + (a?.donation?.quantity || 1),
-            0
-          ) || 0;
+        const delivered = accepted?.filter((a) => a.status === "delivered")?.length || 0;
+        const lives = accepted?.reduce((sum, a) => sum + (a?.donation?.quantity || 1), 0) || 0;
         const successRate = total > 0 ? Math.round((delivered / total) * 100) : 0;
 
         setImpact({ total, delivered, lives, successRate });
-
-        // Active requests
         setActive(accepted?.filter((a) => a.status !== "delivered") || []);
-
-        // Available nearby
-        setAvailable(
-          availableDonations?.filter((d) => d.status === "available") || []
-        );
-
-        // Recent activity
+        setAvailable(availableDonations?.filter((d) => d.status === "available") || []);
         setRecent(
           [...(accepted || [])]
-            .sort(
-              (a, b) =>
-                new Date(b.updatedAt).getTime() -
-                new Date(a.updatedAt).getTime()
-            )
+            .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
             .slice(0, 3)
         );
       } catch (err) {
-        console.error("NGO Dashboard error:", {
-          status: err.response?.status,
-          data: err.response?.data,
-          message: err.message,
-        });
+        console.error("NGO Dashboard error:", err);
         toast.error("Failed to load NGO dashboard");
       } finally {
         setLoading(false);
@@ -86,13 +76,42 @@ const NGODashboard = () => {
     );
   }
 
+  // 🟢 Determine verification status & style
+  const verificationStatus =
+    profile?.status || (profile?.verified ? "verified" : "pending");
+  const statusColor =
+    verificationStatus === "verified"
+      ? "bg-green-50 text-green-700"
+      : verificationStatus === "rejected"
+      ? "bg-red-50 text-red-700"
+      : "bg-yellow-50 text-yellow-700";
+  const statusLabel =
+    verificationStatus === "verified"
+      ? "✅ Verified NGO"
+      : verificationStatus === "rejected"
+      ? "❌ Rejected NGO"
+      : "⏳ Pending Verification";
+
   return (
     <div className="p-6 space-y-8">
       {/* Header */}
-      <h1 className="text-2xl font-bold">NGO Dashboard</h1>
-      <p className="text-gray-600">
-        Managing {active.length} active request{active.length !== 1 && "s"}
-      </p>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-bold">NGO Dashboard</h1>
+          <p className="text-gray-600">
+            Managing {active.length} active request{active.length !== 1 && "s"}
+          </p>
+        </div>
+
+        {/* 🧩 Dynamic Verification Badge */}
+        {verificationStatus && (
+          <span
+            className={`inline-block px-4 py-2 rounded-full text-sm font-medium ${statusColor}`}
+          >
+            {statusLabel}
+          </span>
+        )}
+      </div>
 
       {/* Impact Card */}
       <div className="bg-white rounded-xl shadow p-6">
@@ -111,11 +130,6 @@ const NGODashboard = () => {
             </p>
             <p className="text-gray-500">Success Rate</p>
           </div>
-        </div>
-
-        {/* Verified Badge */}
-        <div className="mt-4 text-green-700 text-sm bg-green-50 p-2 rounded-lg inline-block">
-          ✅ Verified Organization
         </div>
       </div>
 
@@ -160,15 +174,14 @@ const NGODashboard = () => {
                 className="bg-white rounded-lg shadow p-4 flex justify-between items-center"
               >
                 <div>
-                  <p className="font-semibold">{a?.donation?.title || "Untitled Donation"}</p>
+                  <p className="font-semibold">
+                    {a?.donation?.title || "Untitled Donation"}
+                  </p>
                   <p className="text-sm text-gray-500">
                     Status: {a?.status?.replace("_", " ") || "unknown"}
                   </p>
                 </div>
-                <Link
-                  to={`/accept/${a._id}`}
-                  className="text-sky-600 font-medium"
-                >
+                <Link to={`/accept/${a._id}`} className="text-sky-600 font-medium">
                   Manage
                 </Link>
               </div>

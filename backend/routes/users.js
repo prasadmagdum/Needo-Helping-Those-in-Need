@@ -1,13 +1,17 @@
 const express = require("express");
 const { body, validationResult } = require("express-validator");
 const auth = require("../middleware/authMiddleware.js");
+const upload = require("../middleware/uplod.js"); // ✅ handles file uploads
 const User = require("../models/User");
 const Donor = require("../models/Donor");
 const NGO = require("../models/NGO");
 
 const router = express.Router();
 
-// GET /api/users/me  -> core account + role-bound profile bits
+/**
+ * GET /api/users/me
+ * Returns logged-in user's account + linked profile (Donor or NGO)
+ */
 router.get("/me", auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password_hash -__v");
@@ -22,67 +26,121 @@ router.get("/me", auth, async (req, res) => {
 
     res.json({ user, profile });
   } catch (e) {
+    console.error("GET /users/me error:", e);
     res.status(500).json({ msg: "Server error" });
   }
 });
 
-// PUT /api/users/me -> update basic user fields and role-specific profile
+/**
+ * PUT /api/users/me
+ * Updates user + profile info
+ * Supports NGO certificate upload (multipart/form-data)
+ */
 router.put(
   "/me",
   auth,
+  upload.single("certificate"), // ✅ multer handles file upload
   [
     body("name").optional().isLength({ min: 2 }),
     body("phone").optional().isLength({ min: 5 }),
     body("org_name").optional().isString(),
     body("ngo_name").optional().isString(),
     body("registration_no").optional().isString(),
-    body("needs_category").optional().isArray(),
+    // needs_category handled manually (FormData)
   ],
   async (req, res) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-      // update base user
+      // 🔹 Update base user fields
       const user = await User.findByIdAndUpdate(
         req.user.id,
         { $set: { name: req.body.name, phone: req.body.phone } },
         { new: true, runValidators: true }
       ).select("-password_hash -__v");
 
+      if (!user) return res.status(404).json({ msg: "User not found" });
+
       let profile = null;
 
+      /**
+       * 🧍 Donor Section
+       */
       if (user.role === "donor") {
         let donor = await Donor.findOne({ user_id: user._id });
         if (!donor) donor = new Donor({ user_id: user._id, org_name: req.body.org_name || "" });
+
         if (typeof req.body.org_name !== "undefined") donor.org_name = req.body.org_name;
+
         profile = await donor.save();
-      } else if (user.role === "ngo") {
+      }
+
+      /**
+       * 🏢 NGO Section
+       */
+      else if (user.role === "ngo") {
         let ngo = await NGO.findOne({ user_id: user._id });
+
+        // 🧠 Parse needs_category from FormData or JSON
+        let parsedNeeds = [];
+        if (Array.isArray(req.body["needs_category[]"])) {
+          parsedNeeds = req.body["needs_category[]"];
+        } else if (typeof req.body["needs_category[]"] === "string") {
+          parsedNeeds = [req.body["needs_category[]"]];
+        } else if (Array.isArray(req.body.needs_category)) {
+          parsedNeeds = req.body.needs_category;
+        } else if (typeof req.body.needs_category === "string" && req.body.needs_category.length) {
+          parsedNeeds = req.body.needs_category.split(",").map((s) => s.trim()).filter(Boolean);
+        }
+
         if (!ngo) {
+          // First-time NGO profile creation
           if (!req.body.ngo_name || !req.body.registration_no) {
             return res.status(400).json({ msg: "Provide ngo_name and registration_no to create profile" });
           }
-          ngo = new NGO({
+
+          const newNgoData = {
             user_id: user._id,
             ngo_name: req.body.ngo_name,
             registration_no: req.body.registration_no,
-            needs_category: req.body.needs_category || [],
-          });
+            needs_category: parsedNeeds || [],
+            status: "pending",
+            verified: false,
+          };
+
+          // ✅ If a certificate uploaded at creation
+          if (req.file) {
+            newNgoData.certificateUrl = `/uploads/certificates/${req.file.filename}`;
+          }
+
+          ngo = new NGO(newNgoData);
         } else {
+          // Update existing NGO profile
           if (typeof req.body.ngo_name !== "undefined") ngo.ngo_name = req.body.ngo_name;
           if (typeof req.body.registration_no !== "undefined") ngo.registration_no = req.body.registration_no;
-          if (typeof req.body.needs_category !== "undefined") ngo.needs_category = req.body.needs_category || [];
+          if (parsedNeeds && parsedNeeds.length > 0) ngo.needs_category = parsedNeeds;
+
+          // ✅ If certificate uploaded, update and mark pending
+          if (req.file) {
+            const certPath = `/uploads/certificates/${req.file.filename}`;
+            ngo.certificateUrl = certPath;
+            ngo.status = "pending";
+            ngo.verified = false;
+            ngo.verifiedBy = null;
+            ngo.verifiedAt = null;
+          }
         }
+
         profile = await ngo.save();
       }
 
-      res.json({ msg: "Profile updated", user, profile }); // ✅ frontend expects this
+      res.json({ msg: "Profile updated", user, profile });
     } catch (e) {
+      console.error("PUT /users/me error:", e);
       res.status(500).json({ msg: "Server error" });
     }
   }
 );
-
 
 module.exports = router;
