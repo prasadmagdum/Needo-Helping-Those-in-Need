@@ -1,4 +1,3 @@
-// backend/routes/admin.js
 const express = require("express");
 const User = require("../models/User");
 const NGO = require("../models/NGO");
@@ -8,16 +7,16 @@ const auth = require("../middleware/authMiddleware");
 const requireRole = require("../middleware/role");
 const fs = require("fs");
 const path = require("path");
-const upload = require("../middleware/uplod"); // ✅ multer for certificate handling
+const upload = require("../middleware/uplod");
 
 const router = express.Router();
 
-// ✅ Middleware: only admins can access these routes
+// 🔐 Only Admins Can Access
 router.use(auth, requireRole("admin"));
 
-/**
- * 1. Dashboard Overview
- */
+/* ===========================================================
+   1) ADMIN DASHBOARD STATS
+   =========================================================== */
 router.get("/stats", async (req, res) => {
   try {
     const totalUsers = await User.countDocuments();
@@ -43,14 +42,15 @@ router.get("/stats", async (req, res) => {
       activeDonations,
       completedDonations,
     });
-  } catch (e) {
+  } catch (err) {
+    console.error("Stats error:", err);
     res.status(500).json({ msg: "Server error" });
   }
 });
 
-/**
- * 2. User Management
- */
+/* ===========================================================
+   2) USER MANAGEMENT
+   =========================================================== */
 router.get("/users", async (req, res) => {
   try {
     const users = await User.find().select("-password_hash");
@@ -68,7 +68,9 @@ router.put("/users/:id/block", async (req, res) => {
       { blocked },
       { new: true }
     ).select("-password_hash");
+
     if (!user) return res.status(404).json({ msg: "User not found" });
+
     res.json({ msg: `User ${blocked ? "blocked" : "unblocked"}`, user });
   } catch {
     res.status(500).json({ msg: "Server error" });
@@ -84,18 +86,13 @@ router.delete("/users/:id", async (req, res) => {
   }
 });
 
-/**
- * 3. NGO Verification
- */
-
-// 🟢 Get NGOs (filter pending, verified, rejected)
+/* ===========================================================
+   3) NGO VERIFICATION
+   =========================================================== */
 router.get("/ngos", async (req, res) => {
   try {
-    const status = req.query.status;
     let filter = {};
-    if (status === "pending") filter.status = "pending";
-    else if (status === "verified") filter.status = "verified";
-    else if (status === "rejected") filter.status = "rejected";
+    if (req.query.status) filter.status = req.query.status;
 
     const ngos = await NGO.find(filter)
       .populate("user_id", "name email phone")
@@ -107,25 +104,22 @@ router.get("/ngos", async (req, res) => {
   }
 });
 
-// 🟢 Verify NGO + optional certificate upload (Admin)
 router.put("/ngos/:id/verify", upload.single("certificate"), async (req, res) => {
   try {
     const ngo = await NGO.findById(req.params.id);
     if (!ngo) return res.status(404).json({ msg: "NGO not found" });
 
-    // Save uploaded certificate if provided
     if (req.file) {
-      const certPath = `/uploads/certificates/${req.file.filename}`;
-      ngo.certificateUrl = certPath;
+      ngo.certificateUrl = `/uploads/certificates/${req.file.filename}`;
     }
 
-    // Update verification details
     ngo.status = "verified";
     ngo.verified = true;
     ngo.verifiedBy = req.user.id;
     ngo.verifiedAt = new Date();
 
     await ngo.save();
+
     res.json({ msg: "NGO verified successfully", ngo });
   } catch (err) {
     console.error("Verify NGO error:", err);
@@ -133,7 +127,6 @@ router.put("/ngos/:id/verify", upload.single("certificate"), async (req, res) =>
   }
 });
 
-// 🟡 Reject NGO
 router.delete("/ngos/:id/reject", async (req, res) => {
   try {
     const ngo = await NGO.findById(req.params.id);
@@ -141,20 +134,23 @@ router.delete("/ngos/:id/reject", async (req, res) => {
 
     ngo.status = "rejected";
     ngo.verified = false;
-    await ngo.save();
 
+    await ngo.save();
     res.json({ msg: "NGO rejected", ngo });
   } catch {
     res.status(500).json({ msg: "Server error" });
   }
 });
 
-/**
- * 4. Donation Management
- */
+/* ===========================================================
+   4) DONATION MANAGEMENT
+   =========================================================== */
+
+// Fetch ALL Donations for Admin Panel
 router.get("/donations", async (req, res) => {
   try {
     const donors = await Donor.find().populate("user_id", "name email phone");
+
     let donations = [];
     donors.forEach((d) => {
       d.donations.forEach((don) => {
@@ -170,35 +166,116 @@ router.get("/donations", async (req, res) => {
         });
       });
     });
+
     res.json(donations);
   } catch {
     res.status(500).json({ msg: "Server error" });
   }
 });
 
+/* ===========================================================
+   DELETE DONATION (Admin)
+   FIXED: Deletes from DB + Deletes photo files
+   =========================================================== */
 router.delete("/donations/:donationId", async (req, res) => {
   try {
-    const donor = await Donor.findOne({ "donations._id": req.params.donationId });
+    const donationId = req.params.donationId;
+
+    // 1️⃣ Find donor containing this donation
+    const donor = await Donor.findOne({ "donations._id": donationId });
     if (!donor) return res.status(404).json({ msg: "Donation not found" });
 
-    const donation = donor.donations.id(req.params.donationId);
+    // 2️⃣ Find specific donation entry
+    const donation = donor.donations.id(donationId);
 
-    // remove photos if exist
-    if (donation.photos && donation.photos.length > 0) {
-      donation.photos.forEach((photoPath) => {
-        const fullPath = path.join(__dirname, "..", photoPath);
-        fs.unlink(fullPath, (err) => {
-          if (err) console.error("Failed to delete file:", fullPath, err.message);
+    // 3️⃣ Delete Photos if Exist
+    if (donation?.photos?.length > 0) {
+      donation.photos.forEach((photo) => {
+        const filePath = path.join(__dirname, "..", photo);
+        fs.unlink(filePath, (err) => {
+          if (err) console.error("File delete failed:", filePath, err.message);
         });
       });
     }
 
-    donation.remove();
+    // 4️⃣ Remove donation entry from DB
+    donation.deleteOne();
     await donor.save();
 
-    res.json({ msg: "Donation deleted by Admin" });
-  } catch {
+    res.json({ msg: "Donation deleted successfully" });
+  } catch (err) {
+    console.error("Delete donation error:", err);
     res.status(500).json({ msg: "Server error" });
+  }
+});
+
+/* ===========================================================
+   5) ANALYTICS
+   =========================================================== */
+router.get("/top-donors", async (req, res) => {
+  try {
+    const donors = await Donor.find().populate("user_id", "name email").lean();
+
+    const ranked = donors
+      .map((d) => ({
+        name: d.user_id?.name || "Unknown Donor",
+        email: d.user_id?.email || "N/A",
+        totalDonations: d.donations?.length || 0,
+      }))
+      .filter((d) => d.totalDonations > 0)
+      .sort((a, b) => b.totalDonations - a.totalDonations)
+      .slice(0, 5);
+
+    res.json(ranked);
+  } catch (err) {
+    console.error("Top donors error:", err);
+    res.status(500).json({ msg: "Failed to load top donors" });
+  }
+});
+
+router.get("/recent-activity", async (req, res) => {
+  try {
+    const [recentUsers, recentNGOs, recentDonations] = await Promise.all([
+      User.find().sort({ createdAt: -1 }).limit(5).select("name email role createdAt"),
+      NGO.find().sort({ updatedAt: -1 }).limit(5).select("ngo_name status updatedAt"),
+      Donor.aggregate([
+        { $unwind: "$donations" },
+        { $sort: { "donations.createdAt": -1 } },
+        { $limit: 5 },
+        {
+          $project: {
+            title: "$donations.title",
+            status: "$donations.status",
+            createdAt: "$donations.createdAt",
+          },
+        },
+      ]),
+    ]);
+
+    const activities = [
+      ...recentUsers.map((u) => ({
+        type: "User Signup",
+        detail: `${u.name} registered as ${u.role}`,
+        timestamp: u.createdAt,
+      })),
+      ...recentNGOs.map((n) => ({
+        type: "NGO Update",
+        detail: `${n.ngo_name} is now ${n.status}`,
+        timestamp: n.updatedAt,
+      })),
+      ...recentDonations.map((d) => ({
+        type: "Donation Added",
+        detail: `${d.title} (${d.status})`,
+        timestamp: d.createdAt,
+      })),
+    ]
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, 10);
+
+    res.json(activities);
+  } catch (err) {
+    console.error("Recent activity error:", err);
+    res.status(500).json({ msg: "Failed to load activity feed" });
   }
 });
 

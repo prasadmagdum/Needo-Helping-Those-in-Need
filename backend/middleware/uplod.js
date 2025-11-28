@@ -2,21 +2,18 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
-// 🔹 Ensure upload directories exist
+// 🔹 Ensure uploads directory exists
 const uploadDir = path.join(__dirname, "../uploads");
-const certDir = path.join(uploadDir, "certificates");
-
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
-if (!fs.existsSync(certDir)) fs.mkdirSync(certDir);
 
 // 🔹 Configure Multer storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    // NGO certificates will go inside /uploads/certificates
-    cb(null, certDir);
+    // All uploads (certificates, etc.) go directly in /uploads
+    cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    // Generate a unique filename
+    // Generate unique filename
     const ext = path.extname(file.originalname);
     const base = path.basename(file.originalname, ext);
     const unique = Date.now() + "-" + Math.round(Math.random() * 1e9);
@@ -24,7 +21,7 @@ const storage = multer.diskStorage({
   },
 });
 
-// 🔹 File filter for security
+// 🔹 File filter for allowed types
 const fileFilter = (req, file, cb) => {
   const allowed = [
     "application/pdf",
@@ -41,7 +38,7 @@ const fileFilter = (req, file, cb) => {
 // 🔹 Multer middleware
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter,
 });
 

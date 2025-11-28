@@ -1,9 +1,19 @@
 import React, { useEffect, useState } from "react";
 import API from "../../api/axios";
-import { Loader2, Search, CheckCircle2, XCircle, Eye } from "lucide-react";
+import {
+  Loader2,
+  Search,
+  CheckCircle2,
+  XCircle,
+  Eye,
+  Building2,
+  Mail,
+  Phone,
+} from "lucide-react";
 import toast from "react-hot-toast";
+import Layout from "../../components/Layout";
 
-/** Status badge with color coding */
+// Status badge component
 const StatusBadge = ({ status }) => {
   const styles = {
     verified: "bg-green-100 text-green-700",
@@ -11,13 +21,13 @@ const StatusBadge = ({ status }) => {
     rejected: "bg-red-100 text-red-700",
   };
   const labels = {
-    verified: "Verified ✅",
-    pending: "Pending ⏳",
-    rejected: "Rejected ❌",
+    verified: "Verified",
+    pending: "Pending",
+    rejected: "Rejected",
   };
   return (
     <span
-      className={`px-2 py-1 text-xs font-medium rounded-full ${
+      className={`px-2 py-1 text-xs font-semibold rounded-full capitalize ${
         styles[status] || "bg-gray-100 text-gray-700"
       }`}
     >
@@ -30,12 +40,9 @@ const AdminNGOs = () => {
   const [ngos, setNgos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("all"); // all | pending | verified | rejected
-
-  // ✅ Base URL for backend file access
+  const [filter, setFilter] = useState("all");
   const BASE_URL = "http://localhost:5000";
 
-  /** Load NGOs from backend */
   const loadNgos = async () => {
     try {
       let url = "/admin/ngos";
@@ -43,14 +50,13 @@ const AdminNGOs = () => {
       const { data } = await API.get(url);
       setNgos(data);
     } catch (err) {
-      console.error("Error loading NGOs:", err?.response?.data || err.message);
+      console.error("Error loading NGOs:", err);
       toast.error("Failed to load NGOs");
     } finally {
       setLoading(false);
     }
   };
 
-  /** Verify NGO */
   const verifyNgo = async (id) => {
     try {
       await API.put(`/admin/ngos/${id}/verify`);
@@ -61,7 +67,6 @@ const AdminNGOs = () => {
     }
   };
 
-  /** Reject NGO */
   const rejectNgo = async (id) => {
     if (!window.confirm("Are you sure you want to reject this NGO?")) return;
     try {
@@ -77,7 +82,6 @@ const AdminNGOs = () => {
     loadNgos();
   }, [filter]);
 
-  /** Search filter */
   const filteredNgos = ngos.filter(
     (n) =>
       n.ngo_name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -85,133 +89,155 @@ const AdminNGOs = () => {
   );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-800">NGO Verification</h1>
-        <div className="flex gap-3">
-          {/* Search */}
-          <div className="relative">
-            <Search className="w-5 h-5 absolute left-3 top-2.5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search NGOs..."
-              className="pl-10 pr-4 py-2 border rounded-lg w-64 focus:ring-2 focus:ring-green-500"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+    <Layout>
+      <div className="space-y-8 p-4">
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">NGO Verification</h1>
+            <p className="text-gray-500 text-sm">
+              Review, verify, or reject NGOs registered on the platform
+            </p>
           </div>
-          {/* Filter */}
-          <select
-            className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-          >
-            <option value="all">All</option>
-            <option value="pending">Pending</option>
-            <option value="verified">Verified</option>
-            <option value="rejected">Rejected</option>
-          </select>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Search Bar */}
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search NGOs..."
+                className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none"
+              />
+            </div>
+
+            {/* Filter Dropdown */}
+            <select
+              className="px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+            >
+              <option value="all">All</option>
+              <option value="pending">Pending</option>
+              <option value="verified">Verified</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
         </div>
+
+        {/* NGO Cards Section */}
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="animate-spin w-10 h-10 text-green-600" />
+          </div>
+        ) : filteredNgos.length === 0 ? (
+          <div className="text-center py-20 text-gray-500 bg-white rounded-xl shadow-sm">
+            No NGOs found.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredNgos.map((ngo) => {
+              const certUrl = ngo.certificateUrl
+                ? ngo.certificateUrl.startsWith("http")
+                  ? ngo.certificateUrl
+                  : `${BASE_URL}${ngo.certificateUrl}`
+                : null;
+
+              return (
+                <div
+                  key={ngo._id}
+                  className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5 flex flex-col justify-between hover:shadow-md hover:-translate-y-1 transition-all duration-300"
+                >
+                  {/* Header */}
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 bg-green-100 rounded-full text-green-700">
+                        <Building2 className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h2 className="font-semibold text-gray-800 text-lg">
+                          {ngo.ngo_name || "Unnamed NGO"}
+                        </h2>
+                        <p className="text-xs text-gray-500">
+                          Reg. No: {ngo.registration_no || "N/A"}
+                        </p>
+                      </div>
+                    </div>
+                    <StatusBadge
+                      status={ngo.status || (ngo.verified ? "verified" : "pending")}
+                    />
+                  </div>
+
+                  {/* Contact Info */}
+                  <div className="mt-4 space-y-1 text-sm text-gray-600">
+                    {ngo.user_id?.email && (
+                      <p className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-gray-400" />
+                        {ngo.user_id.email}
+                      </p>
+                    )}
+                    {ngo.user_id?.phone && (
+                      <p className="flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-gray-400" />
+                        {ngo.user_id.phone}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Certificate */}
+                  <div className="mt-3">
+                    {certUrl ? (
+                      <a
+                        href={certUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-sky-600 hover:underline text-sm"
+                      >
+                        <Eye className="w-4 h-4" /> View Certificate
+                      </a>
+                    ) : (
+                      <span className="text-xs text-gray-400">No Certificate</span>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex justify-end gap-2 mt-5">
+                    {ngo.status === "pending" && (
+                      <>
+                        <button
+                          onClick={() => verifyNgo(ngo._id)}
+                          className="flex items-center gap-1 px-3 py-1.5 text-white bg-green-600 hover:bg-green-700 rounded-lg text-sm transition"
+                        >
+                          <CheckCircle2 size={16} /> Verify
+                        </button>
+                        <button
+                          onClick={() => rejectNgo(ngo._id)}
+                          className="flex items-center gap-1 px-3 py-1.5 text-white bg-red-600 hover:bg-red-700 rounded-lg text-sm transition"
+                        >
+                          <XCircle size={16} /> Reject
+                        </button>
+                      </>
+                    )}
+                    {ngo.status === "verified" && (
+                      <span className="text-green-700 text-sm font-medium flex items-center gap-1">
+                        <CheckCircle2 size={16} /> Verified
+                      </span>
+                    )}
+                    {ngo.status === "rejected" && (
+                      <span className="text-red-700 text-sm font-medium flex items-center gap-1">
+                        <XCircle size={16} /> Rejected
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
-
-      {/* Content */}
-      {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="animate-spin w-8 h-8 text-green-600" />
-        </div>
-      ) : (
-        <div className="overflow-x-auto bg-white rounded-xl shadow-md">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-100 text-left text-gray-700">
-                <th className="px-4 py-2">NGO Name</th>
-                <th className="px-4 py-2">Reg. No</th>
-                <th className="px-4 py-2">Contact</th>
-                <th className="px-4 py-2">Status</th>
-                <th className="px-4 py-2">Certificate</th>
-                <th className="px-4 py-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredNgos.length > 0 ? (
-                filteredNgos.map((ngo) => {
-                  // 🧩 Ensure certificate URL works correctly
-                  const certUrl = ngo.certificateUrl
-                    ? ngo.certificateUrl.startsWith("http")
-                      ? ngo.certificateUrl
-                      : `${BASE_URL}${ngo.certificateUrl}`
-                    : null;
-
-                  return (
-                    <tr key={ngo._id} className="border-t hover:bg-gray-50">
-                      <td className="px-4 py-2">{ngo.ngo_name}</td>
-                      <td className="px-4 py-2">{ngo.registration_no}</td>
-                      <td className="px-4 py-2">
-                        {ngo.user_id?.name}
-                        <br />
-                        <span className="text-gray-500 text-xs">
-                          {ngo.user_id?.email}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2">
-                        <StatusBadge
-                          status={ngo.status || (ngo.verified ? "verified" : "pending")}
-                        />
-                      </td>
-                      <td className="px-4 py-2">
-                        {certUrl ? (
-                          <a
-                            href={certUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sky-600 hover:underline inline-flex items-center gap-1"
-                          >
-                            <Eye className="w-4 h-4" /> View
-                          </a>
-                        ) : (
-                          <span className="text-gray-400 text-xs">No file</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-2 space-x-2">
-                        {ngo.status === "pending" && (
-                          <>
-                            <button
-                              onClick={() => verifyNgo(ngo._id)}
-                              className="px-2 py-1 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs"
-                            >
-                              <CheckCircle2 className="inline w-4 h-4 mr-1" /> Verify
-                            </button>
-                            <button
-                              onClick={() => rejectNgo(ngo._id)}
-                              className="px-2 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs"
-                            >
-                              <XCircle className="inline w-4 h-4 mr-1" /> Reject
-                            </button>
-                          </>
-                        )}
-                        {ngo.status === "verified" && (
-                          <span className="text-green-700 text-xs">✅ Verified</span>
-                        )}
-                        {ngo.status === "rejected" && (
-                          <span className="text-red-700 text-xs">❌ Rejected</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center text-gray-500">
-                    No NGOs found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+    </Layout>
   );
 };
 

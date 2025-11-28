@@ -1,9 +1,15 @@
-import React, { useState } from "react";
-import { PlusCircle, MapPin, Camera, X } from "lucide-react";
-import API from "../../api/axios";
+import React, { useEffect, useRef, useState } from "react";
+import { PlusCircle, MapPin, Camera, X, UploadCloud } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import API from "../../api/axios";
+
+const MAX_FILES = 4;
 
 const CreateDonation = () => {
+  const navigate = useNavigate();
+  const fileInputRef = useRef(null);
+
   const [form, setForm] = useState({
     title: "",
     category: "",
@@ -13,8 +19,10 @@ const CreateDonation = () => {
     pickup_by: "",
     urgent: false,
   });
-  const [photos, setPhotos] = useState([]);
+
+  const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
   const categories = [
     "Food Surplus",
@@ -26,39 +34,44 @@ const CreateDonation = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setForm({
-      ...form,
-      [name]: type === "checkbox" ? checked : value,
-    });
+    setForm((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
   };
 
-  const handleFileChange = (e) => {
-    const files = Array.from(e.target.files);
-    setPhotos((prev) => [...prev, ...files]);
+  const handleFiles = (newFiles) => {
+    const list = Array.from(newFiles);
+    if (files.length + list.length > MAX_FILES) {
+      toast.error(`You can upload up to ${MAX_FILES} photos.`);
+      return;
+    }
+    const images = list.filter((f) => f.type.startsWith("image/"));
+    setFiles((prev) => [...prev, ...images]);
   };
 
-  const removePhoto = (index) => {
-    setPhotos((prev) => prev.filter((_, i) => i !== index));
+  const removeFile = (index) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
 
+    if (!form.title || !form.category || !form.pickup_location) {
+      toast.error("Please fill all required fields.");
+      return;
+    }
+
+    setLoading(true);
     try {
       const formData = new FormData();
       Object.entries(form).forEach(([key, value]) => {
-        formData.append(key, value);
+        formData.append(key, typeof value === "boolean" ? value.toString() : value);
       });
-      photos.forEach((file) => {
-        formData.append("photos", file);
-      });
+      files.forEach((file) => formData.append("photos", file));
 
       await API.post("/donations", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      toast.success("✅ Donation added successfully!");
+      toast.success("🎉 Donation added successfully!");
       setForm({
         title: "",
         category: "",
@@ -68,166 +81,175 @@ const CreateDonation = () => {
         pickup_by: "",
         urgent: false,
       });
-      setPhotos([]);
-      document.getElementById("fileUpload").value = "";
+      setFiles([]);
+      setTimeout(() => navigate("/my-donations"), 2000);
     } catch (err) {
       console.error("Error adding donation:", err);
-      toast.error(err?.response?.data?.msg || "❌ Error adding donation");
+      toast.error(err?.response?.data?.msg || "Error adding donation");
     } finally {
       setLoading(false);
     }
   };
 
+  const onDragOver = (e) => {
+    e.preventDefault();
+    setDragOver(true);
+  };
+
+  const onDragLeave = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+  };
+
+  const onDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const dtFiles = e.dataTransfer.files;
+    if (dtFiles && dtFiles.length) handleFiles(dtFiles);
+  };
+
   return (
-    <div className="p-6">
-      {/* Header */}
-      <h2 className="flex items-center gap-2 text-2xl font-bold mb-6">
-        <PlusCircle className="text-yellow-500" />
-        Add New Donation
-      </h2>
+    <div className="p-4 sm:p-6">
+      <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-md border border-yellow-100 p-6">
+        <h2 className="flex items-center gap-2 text-2xl font-bold mb-6 text-gray-800">
+          <PlusCircle className="text-yellow-500" />
+          Create Donation
+        </h2>
 
-      {/* Form */}
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-5 bg-white p-6 rounded-xl border border-yellow-200 shadow-sm"
-      >
-        {/* Category + Quantity */}
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
-            <label className="block text-sm font-medium mb-1">
-              Item Category
-            </label>
-            <select
-              name="category"
-              value={form.category}
-              onChange={handleChange}
-              required
-              className="w-full border border-yellow-300 rounded-lg px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-            >
-              <option value="">Select category</option>
-              {categories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex-1">
-            <label className="block text-sm font-medium mb-1">Quantity</label>
-            <input
-              type="number"
-              name="quantity"
-              value={form.quantity}
-              onChange={handleChange}
-              placeholder="Enter quantity"
-              required
-              className="w-full border border-yellow-300 rounded-lg px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-            />
-          </div>
-        </div>
-
-        {/* Title */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Item Title</label>
-          <input
-            type="text"
-            name="title"
-            value={form.title}
-            onChange={handleChange}
-            placeholder="Brief title for your donation"
-            required
-            className="w-full border border-yellow-300 rounded-lg px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-          />
-        </div>
-
-        {/* Description */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Description</label>
-          <textarea
-            name="description"
-            value={form.description}
-            onChange={handleChange}
-            placeholder="Detailed description of items, condition, expiry dates etc."
-            rows="3"
-            required
-            className="w-full border border-yellow-300 rounded-lg px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-          />
-        </div>
-
-        {/* Pickup Location + Date */}
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 flex items-center gap-2">
-            <div className="flex-1">
-              <label className="block text-sm font-medium mb-1">
-                Pickup Location
-              </label>
-              <input
-                type="text"
-                name="pickup_location"
-                value={form.pickup_location}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Category + Quantity */}
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Category *</label>
+              <select
+                name="category"
+                value={form.category}
                 onChange={handleChange}
-                placeholder="Enter your address"
                 required
-                className="w-full border border-yellow-300 rounded-lg px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                className="w-full border border-yellow-300 rounded-lg px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-yellow-400"
+              >
+                <option value="">Select category</option>
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Quantity</label>
+              <input
+                type="number"
+                name="quantity"
+                value={form.quantity}
+                onChange={handleChange}
+                placeholder="e.g., 5 boxes"
+                min="1"
+                className="w-full border border-yellow-300 rounded-lg px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-yellow-400"
               />
             </div>
-            <MapPin className="text-gray-500" />
           </div>
-          <div className="flex-1">
-            <label className="block text-sm font-medium mb-1">Pickup By</label>
+
+          {/* Title */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Title *</label>
             <input
-              type="date"
-              name="pickup_by"
-              value={form.pickup_by}
+              type="text"
+              name="title"
+              value={form.title}
               onChange={handleChange}
-              className="w-full border border-yellow-300 rounded-lg px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              placeholder="Short donation title"
+              required
+              className="w-full border border-yellow-300 rounded-lg px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-yellow-400"
             />
           </div>
-        </div>
 
-        {/* Urgent Checkbox */}
-        <div>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              name="urgent"
-              checked={form.urgent}
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Description</label>
+            <textarea
+              name="description"
+              value={form.description}
               onChange={handleChange}
+              rows={3}
+              placeholder="Describe your items, condition, or other details"
+              className="w-full border border-yellow-300 rounded-lg px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-yellow-400"
             />
-            Mark as urgent
-          </label>
-        </div>
+          </div>
 
-        {/* Upload Photos */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Upload Photos</label>
-          <div className="border-2 border-dashed border-yellow-400 rounded-lg p-6 text-center bg-yellow-50/20">
-            <Camera className="mx-auto mb-2 text-orange-500" size={32} />
-            <p className="text-gray-600 mb-3">
-              Click to upload photos of your items
+          {/* Pickup Location & Date */}
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Pickup Location *</label>
+              <div className="flex items-center border border-yellow-300 rounded-lg px-3 py-2 bg-gray-50">
+                <MapPin className="text-gray-500 mr-2" />
+                <input
+                  type="text"
+                  name="pickup_location"
+                  value={form.pickup_location}
+                  onChange={handleChange}
+                  placeholder="Enter your pickup address"
+                  required
+                  className="w-full bg-transparent outline-none"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Pickup By</label>
+              <input
+                type="date"
+                name="pickup_by"
+                value={form.pickup_by}
+                onChange={handleChange}
+                className="w-full border border-yellow-300 rounded-lg px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-yellow-400"
+              />
+            </div>
+          </div>
+
+          {/* Urgent */}
+          <div>
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                name="urgent"
+                checked={form.urgent}
+                onChange={handleChange}
+              />
+              <span>Mark as urgent</span>
+            </label>
+          </div>
+
+          {/* File Upload */}
+          <div
+            className={`border-2 rounded-lg p-6 text-center transition ${
+              dragOver
+                ? "border-yellow-400 bg-yellow-50"
+                : "border-dashed border-yellow-300 bg-white"
+            }`}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <UploadCloud className="mx-auto text-yellow-500 mb-2" size={32} />
+            <p className="text-gray-600 mb-2">
+              Drag & drop or click to upload (max {MAX_FILES} images)
             </p>
             <input
+              ref={fileInputRef}
               type="file"
               accept="image/*"
               multiple
-              onChange={handleFileChange}
+              onChange={(e) => handleFiles(e.target.files)}
               className="hidden"
-              id="fileUpload"
             />
-            <label
-              htmlFor="fileUpload"
-              className="cursor-pointer bg-white border border-yellow-400 text-gray-700 px-4 py-2 rounded-md hover:bg-yellow-50 inline-flex items-center gap-2"
-            >
-              ⬆ Choose Files
-            </label>
 
-            {/* Preview thumbnails */}
-            {photos.length > 0 && (
-              <div className="mt-4 grid grid-cols-3 gap-3">
-                {photos.map((file, index) => (
+            {files.length > 0 && (
+              <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {files.map((file, i) => (
                   <div
-                    key={index}
-                    className="relative w-24 h-24 border rounded-lg overflow-hidden"
+                    key={i}
+                    className="relative w-full h-24 border rounded-lg overflow-hidden group"
                   >
                     <img
                       src={URL.createObjectURL(file)}
@@ -236,8 +258,8 @@ const CreateDonation = () => {
                     />
                     <button
                       type="button"
-                      onClick={() => removePhoto(index)}
-                      className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 text-xs"
+                      onClick={() => removeFile(i)}
+                      className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 hover:bg-red-700"
                     >
                       <X size={14} />
                     </button>
@@ -246,17 +268,17 @@ const CreateDonation = () => {
               </div>
             )}
           </div>
-        </div>
 
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-2 bg-yellow-500 text-white font-medium rounded-lg hover:bg-yellow-600 transition disabled:opacity-50"
-        >
-          {loading ? "Submitting..." : "Add Donation"}
-        </button>
-      </form>
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600 transition disabled:opacity-50"
+          >
+            {loading ? "Submitting..." : "Create Donation"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 };

@@ -13,32 +13,36 @@ const DonorProfile = () => {
     reset,
     formState: { errors },
   } = useForm();
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editMode, setEditMode] = useState(false);
 
-  // Load donor profile
+  // 🔹 Fetch donor profile once on mount
   useEffect(() => {
-  const fetchProfile = async () => {
-    try {
-      const { data } = await API.get("/users/me");
-      reset({
-        name: data.user.name,
-        email: data.user.email,
-        phone: data.user.phone || "",
-      });
-      setUser(data.user);
-    } catch {
-      toast.error("❌ Failed to load donor profile");
-    } finally {
-      setLoading(false);
-    }
-  };
-  fetchProfile();
-}, []);   // ✅ run only once
+    const fetchProfile = async () => {
+      try {
+        const { data } = await API.get("/users/me");
+        reset({
+          name: data.user.name,
+          email: data.user.email,
+          phone: data.user.phone || "",
+        });
+        setUser(data.user);
+      } catch (err) {
+        if (err.response?.status === 401) {
+          toast.error("Session expired — please log in again");
+        } else {
+          toast.error("❌ Failed to load donor profile");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, [reset, setUser]);
 
-
-  // Save donor profile
+  // 🔹 Handle profile update
   const onSubmit = handleSubmit(async (values) => {
     try {
       setSaving(true);
@@ -47,17 +51,17 @@ const DonorProfile = () => {
         phone: values.phone,
       });
 
-      setUser(data.user); // update context
+      setUser(data.user);
       reset({
         name: data.user.name,
         email: data.user.email,
         phone: data.user.phone || "",
-      }); // refresh form values
+      });
 
-      toast.success("✅ Donor profile updated");
+      toast.success("✅ Donor profile updated successfully!");
       setEditMode(false);
-    } catch {
-      toast.error("⚠️ Update failed");
+    } catch (err) {
+      toast.error("⚠️ Failed to update profile");
     } finally {
       setSaving(false);
     }
@@ -73,17 +77,18 @@ const DonorProfile = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto bg-white p-8 rounded-2xl shadow-md">
+    <div className="max-w-2xl mx-auto bg-white p-8 rounded-2xl shadow-md border border-sky-100">
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
+        {/* 🔹 Future: Replace avatar URL with real uploaded image if available */}
         <img
           src={`https://api.dicebear.com/7.x/initials/svg?seed=${user?.name || "Donor"}`}
           alt="Avatar"
-          className="w-16 h-16 rounded-full shadow"
+          className="w-16 h-16 rounded-full shadow-md border border-gray-200"
         />
         <div>
           <h1 className="text-2xl font-bold text-sky-600">🎁 Donor Profile</h1>
-          <p className="text-gray-500 text-sm">Manage your donor details</p>
+          <p className="text-gray-500 text-sm">Manage your personal details</p>
         </div>
       </div>
 
@@ -107,10 +112,11 @@ const DonorProfile = () => {
             <label className="block text-sm font-medium mb-1">Full Name</label>
             <input
               {...register("name", { required: "Name is required" })}
-              className="w-full border rounded-lg p-2 focus:ring focus:ring-sky-200"
+              className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-sky-200"
             />
             {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
           </div>
+
           <div>
             <label className="block text-sm font-medium mb-1">Email</label>
             <input
@@ -119,11 +125,15 @@ const DonorProfile = () => {
               disabled
             />
           </div>
+
           <div>
             <label className="block text-sm font-medium mb-1">Phone</label>
             <input
               {...register("phone", {
-                pattern: { value: /^[0-9+\- ]*$/, message: "Invalid phone number" },
+                pattern: {
+                  value: /^[0-9+\- ]*$/,
+                  message: "Invalid phone number",
+                },
               })}
               className="w-full border rounded-lg p-2"
             />

@@ -46,7 +46,6 @@ router.put(
     body("org_name").optional().isString(),
     body("ngo_name").optional().isString(),
     body("registration_no").optional().isString(),
-    // needs_category handled manually (FormData)
   ],
   async (req, res) => {
     try {
@@ -109,9 +108,9 @@ router.put(
             verified: false,
           };
 
-          // ✅ If a certificate uploaded at creation
+          // ✅ Certificate uploaded — directly in /uploads/
           if (req.file) {
-            newNgoData.certificateUrl = `/uploads/certificates/${req.file.filename}`;
+            newNgoData.certificateUrl = `/uploads/${req.file.filename}`;
           }
 
           ngo = new NGO(newNgoData);
@@ -121,10 +120,9 @@ router.put(
           if (typeof req.body.registration_no !== "undefined") ngo.registration_no = req.body.registration_no;
           if (parsedNeeds && parsedNeeds.length > 0) ngo.needs_category = parsedNeeds;
 
-          // ✅ If certificate uploaded, update and mark pending
+          // ✅ If certificate uploaded, update & reset verification
           if (req.file) {
-            const certPath = `/uploads/certificates/${req.file.filename}`;
-            ngo.certificateUrl = certPath;
+            ngo.certificateUrl = `/uploads/${req.file.filename}`;
             ngo.status = "pending";
             ngo.verified = false;
             ngo.verifiedBy = null;
