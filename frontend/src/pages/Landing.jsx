@@ -26,14 +26,12 @@ const Landing = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  // Redirect based on user role
   useEffect(() => {
     if (isAdmin) navigate("/admin/dashboard");
     else if (isDonor) navigate("/donor/dashboard");
     else if (isNGO) navigate("/ngo/dashboard");
   }, [isAdmin, isDonor, isNGO, navigate]);
 
-  // Fetch stats
   useEffect(() => {
     const loadStats = async () => {
       try {
@@ -57,6 +55,7 @@ const Landing = () => {
           const key = `${d._id.year}-W${d._id.week}`;
           merged[key] = { week: key, donations: d.count ?? 0, lives: 0 };
         });
+
         livesTrend.forEach((l) => {
           if (!l?._id) return;
           const key = `${l._id.year}-W${l._id.week}`;
@@ -72,8 +71,7 @@ const Landing = () => {
           ),
         });
       } catch (err) {
-        if (process.env.NODE_ENV === "development")
-          console.error("Stats load error:", err);
+        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -85,152 +83,122 @@ const Landing = () => {
     <div className="bg-gray-50">
       <Navbar />
 
-      {/* HERO SECTION */}
+      {/* HERO */}
       <header className="bg-gradient-to-r from-sky-600 to-green-600 text-white">
-        <div className="max-w-7xl mx-auto px-5 sm:px-8 py-14 sm:py-20 flex flex-col-reverse md:flex-row items-center gap-10">
-          {/* Text Content */}
+        <div className="max-w-7xl mx-auto px-6 py-16 flex flex-col-reverse md:flex-row items-center gap-10">
           <div className="flex-1 text-center md:text-left">
-            <h1 className="text-3xl sm:text-5xl font-extrabold leading-tight">
+            <h1 className="text-4xl md:text-5xl font-extrabold leading-tight">
               Share Surplus, <br />
               <span className="text-yellow-300">Change Lives</span>
             </h1>
-            <p className="mt-4 text-sm sm:text-lg text-gray-100 max-w-md mx-auto md:mx-0">
+            <p className="mt-4 text-gray-100 max-w-md mx-auto md:mx-0">
               Turn your surplus food, clothes, or books into hope for communities in need.
             </p>
-            <div className="mt-6 flex flex-col sm:flex-row justify-center md:justify-start gap-4">
+
+            <div className="mt-6 flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
               <Link
                 to="/donor/create"
-                className="bg-white text-sky-700 px-6 py-3 rounded-xl font-semibold shadow hover:bg-gray-100 transition text-sm sm:text-base"
+                className="bg-white text-sky-700 px-6 py-3 rounded-xl font-semibold shadow hover:bg-gray-100"
               >
                 Start Donating
               </Link>
               <Link
                 to="/register?role=ngo"
-                className="bg-green-500 text-white px-6 py-3 rounded-xl font-semibold shadow hover:bg-green-600 transition text-sm sm:text-base"
+                className="bg-green-500 px-6 py-3 rounded-xl font-semibold hover:bg-green-600"
               >
                 Join as NGO
               </Link>
             </div>
-            <p className="mt-3 text-xs sm:text-sm text-gray-200">
+
+            <p className="mt-3 text-sm text-gray-200">
               ✓ Verified NGOs • Secure Donations • Real Impact
             </p>
           </div>
 
-          {/* Image */}
           <div className="flex-1">
             <img
               src="https://images.unsplash.com/photo-1509099836639-18ba1795216d"
-              alt="Volunteers distributing food"
-              className="rounded-2xl shadow-lg w-full object-cover h-60 sm:h-80"
-              loading="lazy"
-              decoding="async"
+              alt="donation"
+              className="rounded-2xl shadow-lg w-full h-72 object-cover"
             />
           </div>
         </div>
       </header>
 
       {/* HOW IT WORKS */}
-      <section className="max-w-7xl mx-auto px-5 sm:px-8 py-14 sm:py-20 text-center">
-        <h2 className="text-2xl sm:text-3xl font-bold mb-10 sm:mb-12">How It Works</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
+      <section className="max-w-7xl mx-auto px-6 py-16 text-center">
+        <h2 className="text-3xl font-bold mb-12">How It Works</h2>
+
+        <div className="grid md:grid-cols-3 gap-8">
           {[
             {
               title: "Create Donation",
               desc: "Post your surplus items easily from your phone.",
-              img: "https://images.unsplash.com/photo-1606787366850-de6330128bfc",
+              img: "https://plus.unsplash.com/premium_photo-1683140538884-07fb31428ca6?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8ZG9uYXRpb258ZW58MHx8MHx8fDA%3D",
             },
             {
               title: "NGO Matches",
               desc: "Verified NGOs accept donations that meet their needs.",
-              img: "https://images.unsplash.com/photo-1601968177507-a5e8f1f57c0e",
+              img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQUd38mY4INWoOmg_6l5U337Tkof7UzuS396Q&s",
             },
             {
               title: "Make Impact",
               desc: "Coordinate pickups or drop-offs and change lives.",
-              img: "https://images.unsplash.com/photo-1549576490-b0b4831ef60a",
+              img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQY5g7ZYSuR2HgNhlgqOR1_kF34FAXK6_oi5g&s",
             },
           ].map((step, idx) => (
-            <div
-              key={idx}
-              className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition"
-            >
+            <div key={idx} className="bg-white rounded-xl shadow hover:shadow-lg">
               <img
                 src={step.img}
                 alt={step.title}
-                className="h-44 sm:h-52 w-full object-cover"
-                loading="lazy"
+                className="h-52 w-full object-cover rounded-t-xl"
               />
-              <div className="p-5 sm:p-6">
-                <h3 className="text-lg font-bold mb-2">{step.title}</h3>
-                <p className="text-gray-600 text-sm sm:text-base">{step.desc}</p>
+              <div className="p-6">
+                <h3 className="font-bold text-lg">{step.title}</h3>
+                <p className="text-gray-600 mt-2">{step.desc}</p>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* IMPACT STATS */}
-      <section className="bg-gray-100 py-14 sm:py-20 text-center">
-        <div className="max-w-7xl mx-auto px-5 sm:px-8">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-8 sm:mb-10">Our Global Impact</h2>
+      {/* STATS */}
+      <section className="bg-gray-100 py-16 text-center">
+        <div className="max-w-7xl mx-auto px-6">
+          <h2 className="text-3xl font-bold mb-10">Our Global Impact</h2>
 
           {loading ? (
-            <Loader2 className="animate-spin mx-auto text-gray-500" />
+            <Loader2 className="animate-spin mx-auto" />
           ) : (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-10">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10">
                 {[
-                  {
-                    label: "Donations",
-                    value: stats.totals.donations.toLocaleString(),
-                    color: "text-sky-600",
-                  },
-                  {
-                    label: "NGOs",
-                    value: stats.totals.ngos.toLocaleString(),
-                    color: "text-green-600",
-                  },
-                  {
-                    label: "Lives",
-                    value: stats.totals.lives.toLocaleString(),
-                    color: "text-orange-600",
-                  },
-                  {
-                    label: "Cities",
-                    value: stats.totals.cities.toLocaleString(),
-                    color: "text-purple-600",
-                  },
-                ].map((item, i) => (
+                  ["Donations", stats.totals.donations],
+                  ["NGOs", stats.totals.ngos],
+                  ["Lives", stats.totals.lives],
+                  ["Cities", stats.totals.cities],
+                ].map(([label, val], i) => (
                   <div key={i}>
-                    <p className={`text-3xl sm:text-4xl font-bold ${item.color}`}>
-                      {item.value}
+                    <p className="text-3xl font-bold text-sky-600">
+                      {val.toLocaleString()}
                     </p>
-                    <p className="text-gray-700 text-sm sm:text-base">{item.label}</p>
+                    <p className="text-gray-600">{label}</p>
                   </div>
                 ))}
               </div>
 
-              <div className="bg-white rounded-2xl shadow p-4 sm:p-6">
-                <h3 className="text-lg font-semibold mb-3 sm:mb-4">
-                  Weekly Trends
-                </h3>
-                {stats.trends.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={250}>
-                    <LineChart data={stats.trends}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="week" tickFormatter={(w) => w.split("-W")[1]} />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Line type="monotone" dataKey="donations" stroke="#0ea5e9" name="Donations" />
-                      <Line type="monotone" dataKey="lives" stroke="#f97316" name="Lives Impacted" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <p className="text-gray-500 text-sm sm:text-base">
-                    No data available
-                  </p>
-                )}
+              <div className="bg-white rounded-xl shadow p-6">
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={stats.trends}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="week" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line dataKey="donations" stroke="#0ea5e9" />
+                    <Line dataKey="lives" stroke="#f97316" />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             </>
           )}
@@ -238,11 +206,10 @@ const Landing = () => {
       </section>
 
       {/* SUCCESS STORIES */}
-      <section className="max-w-7xl mx-auto px-5 sm:px-8 py-14 sm:py-20">
-        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-10 sm:mb-12">
-          Success Stories
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
+      <section className="max-w-7xl mx-auto px-6 py-16 text-center">
+        <h2 className="text-3xl font-bold mb-12">Success Stories</h2>
+
+        <div className="grid md:grid-cols-2 gap-8">
           {[
             {
               title: "500+ Meals Shared",
@@ -251,66 +218,58 @@ const Landing = () => {
             },
             {
               title: "1200+ Books Donated",
-              desc: "NGOs distributed books to underprivileged children.",
+              desc: "NGOs distributed books to children.",
               img: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f",
             },
           ].map((story, idx) => (
-            <div
-              key={idx}
-              className="bg-white rounded-2xl shadow overflow-hidden hover:shadow-lg transition"
-            >
+            <div key={idx} className="bg-white rounded-xl shadow hover:shadow-lg">
               <img
                 src={story.img}
                 alt={story.title}
-                className="h-48 w-full object-cover"
-                loading="lazy"
+                className="h-56 w-full object-cover rounded-t-xl"
               />
-              <div className="p-5 sm:p-6">
-                <h3 className="font-bold text-base sm:text-lg mb-1">
-                  {story.title}
-                </h3>
-                <p className="text-gray-600 text-sm sm:text-base">{story.desc}</p>
+              <div className="p-6">
+                <h3 className="font-bold text-lg">{story.title}</h3>
+                <p className="text-gray-600 mt-2">{story.desc}</p>
               </div>
             </div>
           ))}
         </div>
-        <div className="text-center mt-8">
-          <Link to="/stories" className="text-sky-600 font-semibold hover:underline">
-            View More Stories →
-          </Link>
-        </div>
+
+        <Link
+          to="/stories"
+          className="inline-block mt-8 text-sky-600 font-semibold hover:underline"
+        >
+          View More Stories →
+        </Link>
       </section>
 
-      {/* FOOTER */}
-      <footer className="bg-gray-900 text-gray-400 py-10 sm:py-12 text-center sm:text-left">
-        <div className="max-w-7xl mx-auto px-5 sm:px-8 grid grid-cols-1 sm:grid-cols-3 gap-8">
+      {/* FOOTER (PERFECT CENTER) */}
+      <footer className="bg-gray-900 text-gray-400 py-10">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col items-center text-center space-y-6">
+          
           <div>
-            <h3 className="text-white font-bold text-lg mb-2">SurplusConnect</h3>
-            <p className="text-sm">
+            <h3 className="text-white text-xl font-bold">
+              Needo
+            </h3>
+            <p className="text-sm mt-2 max-w-md">
               Connecting donors with NGOs to reduce waste and create real change.
             </p>
           </div>
-          <div>
-            <h4 className="text-white font-semibold mb-2">Platform</h4>
-            <ul className="space-y-1 text-sm">
-              <li><Link to="/about" className="hover:text-white">How it Works</Link></li>
-              <li><Link to="/donors" className="hover:text-white">For Donors</Link></li>
-              <li><Link to="/ngos" className="hover:text-white">For NGOs</Link></li>
-            </ul>
+
+          <div className="flex flex-wrap justify-center gap-6 text-sm">
+            <Link to="/about" className="hover:text-white">How it Works</Link>
+            <Link to="/donors" className="hover:text-white">Donors</Link>
+            <Link to="/ngos" className="hover:text-white">NGOs</Link>
+            <Link to="/contact" className="hover:text-white">Contact</Link>
+            <Link to="/privacy" className="hover:text-white">Privacy</Link>
+            <Link to="/terms" className="hover:text-white">Terms</Link>
           </div>
-          <div>
-            <h4 className="text-white font-semibold mb-2">Support</h4>
-            <ul className="space-y-1 text-sm">
-              <li><Link to="/help" className="hover:text-white">Help Center</Link></li>
-              <li><Link to="/contact" className="hover:text-white">Contact</Link></li>
-              <li><Link to="/privacy" className="hover:text-white">Privacy Policy</Link></li>
-              <li><Link to="/terms" className="hover:text-white">Terms</Link></li>
-            </ul>
-          </div>
+
+          <p className="text-xs text-gray-500">
+            © {new Date().getFullYear()} Needo. All rights reserved.
+          </p>
         </div>
-        <p className="text-gray-500 text-xs sm:text-sm mt-6 sm:mt-8">
-          © {new Date().getFullYear()} SurplusConnect. All rights reserved.
-        </p>
       </footer>
     </div>
   );
