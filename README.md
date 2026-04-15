@@ -1,4 +1,5 @@
 #Needo – Helping Those in Need
+
 Needo is a donation platform that connects donors with NGOs and people in need.
 It helps reduce waste by allowing users to donate surplus food, clothes, books, and other resources efficiently.
 
@@ -44,10 +45,5 @@ Other Tools:
 Axios
 JWT Authentication
 Cloudinary (for image upload)
-📂 Project Structure
 
-Needo/
-│
-├── frontend/
-├── backend/
-├── README.md
+
