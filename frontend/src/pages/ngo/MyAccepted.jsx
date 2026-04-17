@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 
 const MyAccepted = () => {
   const [items, setItems] = useState(null);
-  const [filter, setFilter] = useState("All"); // 🟠 new filter state
+  const [filter, setFilter] = useState("All"); // new filter state
   const BASE_URL = "http://localhost:5000"; // later move to .env
 
   const load = async () => {
@@ -20,7 +20,7 @@ const MyAccepted = () => {
   const updateStatus = async (id, status) => {
     try {
       await API.put(`/accept/${id}/status`, { status });
-      toast.success("✅ Status updated successfully!");
+      toast.success("Status updated successfully!");
       load();
     } catch (err) {
       toast.error(err.response?.data?.msg || "Update failed");
@@ -46,7 +46,7 @@ const MyAccepted = () => {
     );
   }
 
-  // 🧠 Filter donations by status
+  //  Filter donations by status
   const filteredItems =
     filter === "All"
       ? items
@@ -67,7 +67,7 @@ const MyAccepted = () => {
         </h1>
       </div>
 
-      {/* 🟠 Filter Tabs */}
+      {/*  Filter Tabs */}
       <div className="flex bg-gray-100 p-1 rounded-full w-fit mb-8">
         {["All", "Pending Pickup", "In Transit", "Delivered"].map((tab) => (
           <button
@@ -95,7 +95,7 @@ const MyAccepted = () => {
           <p>No donations found for this status.</p>
         </div>
       ) : (
-        // 🧩 Cards grid
+        //  Cards grid
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredItems.map((a) => {
             const donation = a.donation || {};
@@ -134,11 +134,11 @@ const MyAccepted = () => {
                       {donor.user_email || "N/A"})
                     </p>
                     <p>
-                      <span className="font-medium">📍 Location:</span>{" "}
+                      <span className="font-medium"> Location:</span>{" "}
                       {donation.pickup_location || "Not specified"}
                     </p>
                     <p>
-                      <span className="font-medium">📦 Quantity:</span>{" "}
+                      <span className="font-medium">Quantity:</span>{" "}
                       {donation.quantity || "N/A"}
                     </p>
                   </div>
@@ -153,9 +153,9 @@ const MyAccepted = () => {
                       onChange={(e) => updateStatus(a._id, e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-400 focus:border-sky-400 text-gray-700 transition"
                     >
-                      <option value="pending_pickup">⏳ Pending Pickup</option>
-                      <option value="in_transit">🚚 In Transit</option>
-                      <option value="delivered">✅ Delivered</option>
+                      <option value="pending_pickup"> Pending Pickup</option>
+                      <option value="in_transit">In Transit</option>
+                      <option value="delivered"> Delivered</option>
                     </select>
                   </div>
 

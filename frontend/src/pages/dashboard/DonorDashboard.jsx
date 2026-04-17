@@ -49,7 +49,7 @@ const DonorDashboard = () => {
         setRecent(myDonations?.slice(-3).reverse() || []);
         setUrgent(urgentDonations?.filter((d) => d.urgent) || []);
 
-        // 🎉 Show confetti when user reaches 5 or more donations
+        //  Show confetti when user reaches 5 or more donations
         if (myDonations?.length >= 5) {
           setShowConfetti(true);
           setTimeout(() => setShowConfetti(false), 5000);
@@ -73,17 +73,17 @@ const DonorDashboard = () => {
 
   return (
     <div className="p-4 md:p-8 space-y-8 max-w-5xl mx-auto relative">
-      {/* 🎉 Confetti Celebration */}
+      {/*  Confetti Celebration */}
       {showConfetti && <Confetti width={width} height={height} />}
 
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">
-            Welcome back, {user?.name || "Donor"} 👋
+            Welcome back, {user?.name || "Donor"} 
           </h1>
           <p className="text-gray-600">
-            Thank you for making a difference every single day 💚
+            Thank you for making a difference every single day 
           </p>
         </div>
         <Link
@@ -94,12 +94,12 @@ const DonorDashboard = () => {
         </Link>
       </div>
 
-      {/* 🌟 Motivation / Impact Card */}
+      {/* Motivation / Impact Card */}
       {stats.donations > 0 && (
         <div className="bg-gradient-to-r from-green-100 to-blue-100 rounded-2xl shadow-lg p-6 flex flex-col md:flex-row items-center justify-between">
           <div>
             <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-              You’re spreading kindness! 🌍
+              You’re spreading kindness! 
             </h2>
             <p className="text-gray-700 max-w-lg">
               You’ve made <strong>{stats.donations}</strong> donations and helped{" "}
@@ -156,19 +156,19 @@ const DonorDashboard = () => {
           to="/donor/create"
           className="bg-green-600 text-white p-6 rounded-xl shadow hover:bg-green-700 text-center font-medium"
         >
-          ➕ Create New Donation
+           Create New Donation
         </Link>
         <Link
           to="/donor/my"
           className="bg-indigo-600 text-white p-6 rounded-xl shadow hover:bg-indigo-700 text-center font-medium"
         >
-          📦 View My Donations
+           View My Donations
         </Link>
       </div>
 
       {/* Recent Donations */}
       <div>
-        <h2 className="text-xl font-semibold mb-3">📋 Recent Donations</h2>
+        <h2 className="text-xl font-semibold mb-3"> Recent Donations</h2>
         {recent.length === 0 ? (
           <p className="text-gray-500">No recent donations found</p>
         ) : (
@@ -202,7 +202,7 @@ const DonorDashboard = () => {
       {/* Urgent Requests */}
       <div>
         <h2 className="text-xl font-semibold mb-3 text-red-600">
-          🚨 Urgent Requests Nearby
+          Urgent Requests Nearby
         </h2>
         {urgent.length === 0 ? (
           <p className="text-gray-500">No urgent requests at the moment</p>

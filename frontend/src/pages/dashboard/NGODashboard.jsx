@@ -28,7 +28,7 @@ const NGODashboard = () => {
   const MILESTONE = 10;
   const CELEBRATION_THRESHOLD = 5;
 
-  // 🧩 Load profile for verification
+  // Load profile for verification
   useEffect(() => {
     const loadProfile = async () => {
       try {
@@ -42,7 +42,7 @@ const NGODashboard = () => {
     loadProfile();
   }, [user]);
 
-  // 🧠 Load Dashboard Data
+  // Load Dashboard Data
   useEffect(() => {
     const load = async () => {
       try {
@@ -93,7 +93,7 @@ const NGODashboard = () => {
       </p>
     );
 
-  // 🟢 Verification Badge
+  //  Verification Badge
   const verificationStatus =
     profile?.status || (profile?.verified ? "verified" : "pending");
   const statusColor =
@@ -104,7 +104,7 @@ const NGODashboard = () => {
       : "bg-yellow-50 text-yellow-700";
   const statusLabel =
     verificationStatus === "verified"
-      ? "✅ Verified NGO"
+      ? "✅Verified NGO"
       : verificationStatus === "rejected"
       ? "❌ Rejected NGO"
       : "⏳ Pending Verification";
@@ -138,7 +138,7 @@ const NGODashboard = () => {
         </div>
       </div>
 
-      {/* 🌈 Impact Gradient Card */}
+      {/*  Impact Gradient Card */}
       <div
         className="rounded-2xl p-6 shadow-lg overflow-hidden"
         style={{
@@ -148,7 +148,7 @@ const NGODashboard = () => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h2 className="text-2xl md:text-3xl font-semibold text-gray-800">
-              You’re changing lives every day 💚
+              You’re changing lives every day 
             </h2>
             <p className="text-gray-700 mt-1">
               You’ve handled <strong>{impact.total}</strong> donations and supported{" "}
@@ -169,7 +169,7 @@ const NGODashboard = () => {
         </div>
       </div>
 
-      {/* 📊 Stats + Progress */}
+      {/* Stats + Progress */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard colorClass="text-sky-600" value={impact.total} label="Accepted" />
         <StatCard colorClass="text-green-600" value={impact.delivered} label="Delivered" />
@@ -194,24 +194,24 @@ const NGODashboard = () => {
         </p>
       </div>
 
-      {/* ⚡ Quick Actions */}
+      {/* Quick Actions */}
       <div className="grid md:grid-cols-2 gap-4">
         <Link
           to="/ngo/browse"
           className="p-6 rounded-xl shadow transform hover:-translate-y-1 transition flex items-center justify-center bg-gradient-to-r from-green-500 to-sky-500 text-white font-semibold"
         >
-          🔍 Browse Donations
+           Browse Donations
         </Link>
 
         <Link
           to="/ngo/my"
           className="p-6 rounded-xl shadow transform hover:-translate-y-1 transition flex items-center justify-center bg-gradient-to-r from-orange-500 to-red-400 text-white font-semibold"
         >
-          📦 My Accepted
+          My Accepted
         </Link>
       </div>
 
-      {/* 📍 Available Nearby → Browse Donations */}
+      {/* Available Nearby → Browse Donations */}
       <div>
         <div className="flex justify-between items-center mb-3">
           <h2 className="text-xl font-semibold">Available Nearby</h2>
@@ -248,7 +248,7 @@ const NGODashboard = () => {
         )}
       </div>
 
-      {/* 🚚 Active Requests → My Accepted */}
+      {/*  Active Requests → My Accepted */}
       <div>
         <div className="flex justify-between items-center mb-3">
           <h2 className="text-xl font-semibold">Active Requests</h2>
@@ -287,7 +287,7 @@ const NGODashboard = () => {
         )}
       </div>
 
-      {/* 🕓 Recent Activity */}
+      {/*  Recent Activity */}
       <div>
         <h2 className="text-xl font-semibold mb-3">Recent Activity</h2>
         {recent.length === 0 ? (

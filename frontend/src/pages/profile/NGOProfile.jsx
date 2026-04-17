@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 
 const NGOProfile = () => {
   const { user, setUser } = useAuth();
+
   const {
     register,
     handleSubmit,
@@ -20,26 +21,27 @@ const NGOProfile = () => {
   const [certificate, setCertificate] = useState(null);
   const [profileData, setProfileData] = useState(null);
 
-  const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
-  // 🔹 Load NGO profile
+  // 🔹 Load Profile
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const { data } = await API.get("/users/me");
         const profile = data.profile || {};
+
         setProfileData(profile);
+
         reset({
-          name: data.user.name,
-          email: data.user.email,
+          name: data.user.name || "",
+          email: data.user.email || "",
           phone: data.user.phone || "",
           ngo_name: profile.ngo_name || "",
           registration_no: profile.registration_no || "",
           needs_category_csv: (profile.needs_category || []).join(", "),
         });
+
         setUser(data.user);
       } catch {
-        toast.error("❌ Failed to load NGO profile");
+        toast.error("Failed to load profile");
       } finally {
         setLoading(false);
       }
@@ -47,41 +49,59 @@ const NGOProfile = () => {
     fetchProfile();
   }, []);
 
-  // 🔹 Save NGO profile
+  // 🔹 File Validation
+  const handleFileChange = (file) => {
+    if (!file) return;
+
+    const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
+    const maxSize = 5 * 1024 * 1024;
+
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Only PDF, JPG, PNG allowed");
+      return;
+    }
+
+    if (file.size > maxSize) {
+      toast.error("File must be under 5MB");
+      return;
+    }
+
+    setCertificate(file);
+  };
+
+  // 🔹 Submit
   const onSubmit = handleSubmit(async (values) => {
     try {
       setSaving(true);
+
       const needs_category = values.needs_category_csv
-        ? values.needs_category_csv.split(",").map((s) => s.trim())
+        ? values.needs_category_csv
+            .split(",")
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0)
         : [];
 
       const formData = new FormData();
-      formData.append("name", values.name);
-      formData.append("phone", values.phone);
-      formData.append("ngo_name", values.ngo_name);
-      formData.append("registration_no", values.registration_no);
-      needs_category.forEach((c) => formData.append("needs_category[]", c));
+      formData.append("name", values.name.trim());
+      formData.append("phone", values.phone.trim());
+      formData.append("ngo_name", values.ngo_name.trim());
+      formData.append("registration_no", values.registration_no.trim());
+
+      needs_category.forEach((c) =>
+        formData.append("needs_category[]", c)
+      );
+
       if (certificate) formData.append("certificate", certificate);
 
-      const { data } = await API.put("/users/me", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const { data } = await API.put("/users/me", formData);
 
       setUser(data.user);
       setProfileData(data.profile);
-      reset({
-        name: data.user.name,
-        email: data.user.email,
-        phone: data.user.phone || "",
-        ngo_name: data.profile?.ngo_name || "",
-        registration_no: data.profile?.registration_no || "",
-        needs_category_csv: (data.profile?.needs_category || []).join(", "),
-      });
 
-      toast.success("✅ NGO profile updated & submitted for verification");
+      toast.success("Profile updated successfully");
       setEditMode(false);
     } catch {
-      toast.error("⚠️ Update failed");
+      toast.error("Update failed");
     } finally {
       setSaving(false);
     }
@@ -89,252 +109,158 @@ const NGOProfile = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="animate-spin w-6 h-6 text-sky-600 mr-2" />
-        <span className="text-gray-600">Loading NGO profile...</span>
+      <div className="flex justify-center py-20">
+        <Loader2 className="animate-spin w-6 h-6 mr-2" />
+        Loading...
       </div>
     );
   }
 
-  const verificationStatus =
-    profileData?.status || (profileData?.verified ? "verified" : "pending");
-
-  const getStatusColor = () => {
-    switch (verificationStatus) {
-      case "verified":
-        return "bg-green-100 text-green-700";
-      case "rejected":
-        return "bg-red-100 text-red-700";
-      default:
-        return "bg-yellow-100 text-yellow-700";
-    }
-  };
-
-  const certificateUrl = profileData?.certificateUrl
-    ? profileData.certificateUrl.startsWith("http")
-      ? profileData.certificateUrl
-      : `${BASE_URL}${profileData.certificateUrl}`
-    : null;
-
   return (
     <div className="bg-gray-50 min-h-screen py-10 px-4">
-      <div className="max-w-3xl mx-auto bg-white p-8 rounded-2xl shadow-md relative">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <img
-              src={`https://api.dicebear.com/7.x/initials/svg?seed=${user?.name || "NGO"}`}
-              alt="Avatar"
-              className="w-16 h-16 rounded-full shadow"
-            />
-            <div>
-              <h1 className="text-2xl font-bold text-sky-600">NGO Profile</h1>
-              <p className="text-gray-500 text-sm">Manage your NGO details</p>
-            </div>
-          </div>
+      <div className="max-w-3xl mx-auto bg-white p-8 rounded-2xl shadow">
 
-          {/* Status badge */}
-          <span
-            className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor()}`}
-          >
-            {verificationStatus === "verified" && "✅ Verified"}
-            {verificationStatus === "pending" && "⏳ Pending Verification"}
-            {verificationStatus === "rejected" && "❌ Rejected"}
-          </span>
+        <div className="flex justify-between mb-6">
+          <h1 className="text-2xl font-bold text-sky-600">NGO Profile</h1>
         </div>
 
-        {/* Display Mode */}
         {!editMode ? (
-          <div className="space-y-3 text-gray-700">
-            <p>
-              <strong>Full Name:</strong> {user?.name}
-            </p>
-            <p>
-              <strong>Email:</strong> {user?.email}
-            </p>
-            <p>
-              <strong>Phone:</strong> {user?.phone || "N/A"}
-            </p>
-            <p>
-              <strong>NGO Name:</strong> {profileData?.ngo_name || "N/A"}
-            </p>
-            <p>
-              <strong>Registration No:</strong>{" "}
-              {profileData?.registration_no || "N/A"}
-            </p>
-            <p>
-              <strong>Needs Categories:</strong>{" "}
-              {(profileData?.needs_category || []).join(", ") || "N/A"}
-            </p>
-
-            {certificateUrl && (
-              <p>
-                <strong>Certificate:</strong>{" "}
-                <a
-                  href={certificateUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sky-600 underline"
-                >
-                  View Certificate
-                </a>
-              </p>
-            )}
+          <div className="space-y-3">
+            <p><strong>Name:</strong> {user?.name}</p>
+            <p><strong>Email:</strong> {user?.email}</p>
+            <p><strong>Phone:</strong> {user?.phone || "N/A"}</p>
+            <p><strong>NGO Name:</strong> {profileData?.ngo_name || "N/A"}</p>
+            <p><strong>Registration No:</strong> {profileData?.registration_no || "N/A"}</p>
 
             <button
               onClick={() => setEditMode(true)}
-              className="mt-6 flex items-center gap-2 bg-sky-600 text-white px-5 py-2 rounded-lg hover:bg-sky-700 transition"
+              className="mt-4 bg-sky-600 text-white px-4 py-2 rounded"
             >
-              <Edit3 size={16} /> Edit Profile
+              <Edit3 size={16} /> Edit
             </button>
           </div>
         ) : (
-          <form onSubmit={onSubmit} className="space-y-6">
-            {/* Basic Info */}
+          <form onSubmit={onSubmit} className="space-y-4">
+
+            {/* NAME */}
             <div>
-              <h2 className="text-lg font-semibold text-gray-700 mb-2">
-                Basic Information
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Full Name
-                  </label>
-                  <input
-                    {...register("name", { required: "Name is required" })}
-                    className="w-full border rounded-lg p-2 focus:ring focus:ring-sky-200"
-                  />
-                  {errors.name && (
-                    <p className="text-red-500 text-sm">
-                      {errors.name.message}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Email</label>
-                  <input
-                    {...register("email")}
-                    className="w-full border rounded-lg p-2 bg-gray-100"
-                    disabled
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Phone</label>
-                  <input
-                    {...register("phone", {
-                      pattern: {
-                        value: /^[0-9+\- ]*$/,
-                        message: "Invalid phone number",
-                      },
-                    })}
-                    className="w-full border rounded-lg p-2"
-                  />
-                  {errors.phone && (
-                    <p className="text-red-500 text-sm">
-                      {errors.phone.message}
-                    </p>
-                  )}
-                </div>
-              </div>
+              <label className="block text-sm font-medium mb-1">Full Name</label>
+              <input
+                {...register("name", {
+                  required: "Name is required",
+                  validate: (value) => {
+                    if (value.trim().length < 3)
+                      return "Minimum 3 characters";
+                    if (!/^[A-Za-z ]+$/.test(value))
+                      return "Only letters allowed";
+                    return true;
+                  },
+                })}
+                className="w-full border p-2 rounded"
+              />
+              {errors.name && <p className="text-red-500">{errors.name.message}</p>}
             </div>
 
-            {/* NGO Info */}
+            {/* EMAIL */}
             <div>
-              <h2 className="text-lg font-semibold text-gray-700 mb-2">
-                NGO Information
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    NGO Name
-                  </label>
-                  <input
-                    {...register("ngo_name", { required: "NGO name is required" })}
-                    className="w-full border rounded-lg p-2"
-                  />
-                  {errors.ngo_name && (
-                    <p className="text-red-500 text-sm">
-                      {errors.ngo_name.message}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Registration No
-                  </label>
-                  <input
-                    {...register("registration_no", {
-                      required: "Registration number is required",
-                    })}
-                    className="w-full border rounded-lg p-2"
-                  />
-                  {errors.registration_no && (
-                    <p className="text-red-500 text-sm">
-                      {errors.registration_no.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <label className="block text-sm font-medium mb-1">
-                  Needs Categories
-                </label>
-                <input
-                  {...register("needs_category_csv")}
-                  placeholder="food, clothes, books"
-                  className="w-full border rounded-lg p-2"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Separate categories with commas (e.g., food, clothes, books)
-                </p>
-              </div>
-
-              {/* Certificate Upload */}
-              <div className="mt-4">
-                <label className="block text-sm font-medium mb-1">
-                  Upload Registration Certificate
-                </label>
-                <input
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={(e) => setCertificate(e.target.files[0])}
-                  className="w-full border rounded-lg p-2"
-                />
-                {certificate && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    📎 Selected file: <span className="font-medium">{certificate.name}</span>
-                  </p>
-                )}
-                <p className="text-xs text-gray-500 mt-1">
-                  Accepted formats: PDF, JPG, PNG (max 5MB)
-                </p>
-              </div>
+              <label className="block text-sm font-medium mb-1">Email</label>
+              <input
+                {...register("email", {
+                  required: "Email required",
+                  pattern: {
+                    value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                    message: "Invalid email",
+                  },
+                })}
+                disabled
+                className="w-full border p-2 rounded bg-gray-100"
+              />
             </div>
 
-            {/* Actions */}
-            <div className="flex gap-3 pt-4">
-              <button
-                type="submit"
-                disabled={saving}
-                className="bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700 transition disabled:opacity-50"
-              >
-                {saving ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="animate-spin w-4 h-4" /> Saving...
-                  </span>
-                ) : (
-                  "Save & Submit"
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => setEditMode(false)}
-                className="bg-gray-400 text-white px-5 py-2 rounded-lg hover:bg-gray-500 transition"
-              >
-                Cancel
-              </button>
+            {/* PHONE */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Phone</label>
+              <input
+                {...register("phone", {
+                  required: "Phone required",
+                  pattern: {
+                    value: /^[6-9]\d{9}$/,
+                    message: "Invalid Indian number",
+                  },
+                })}
+                className="w-full border p-2 rounded"
+              />
+              {errors.phone && <p className="text-red-500">{errors.phone.message}</p>}
             </div>
+
+            {/* NGO NAME */}
+            <div>
+              <label className="block text-sm font-medium mb-1">NGO Name</label>
+              <input
+                {...register("ngo_name", {
+                  required: "NGO name required",
+                })}
+                className="w-full border p-2 rounded"
+              />
+              {errors.ngo_name && <p className="text-red-500">{errors.ngo_name.message}</p>}
+            </div>
+
+            {/* REGISTRATION */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Registration Number
+              </label>
+              <input
+                {...register("registration_no", {
+                  required: "Registration number required",
+                  validate: (value) => {
+                    if (value.trim().length < 5)
+                      return "Minimum 5 characters";
+                    if (!/^[A-Za-z0-9/-]+$/.test(value))
+                      return "Invalid format";
+                    return true;
+                  },
+                })}
+                placeholder="e.g. NGO/12345/2024"
+                className="w-full border p-2 rounded"
+              />
+              {errors.registration_no && (
+                <p className="text-red-500">
+                  {errors.registration_no.message}
+                </p>
+              )}
+            </div>
+
+            {/* FILE */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Upload Certificate
+              </label>
+              <input
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={(e) => handleFileChange(e.target.files[0])}
+                className="w-full border p-2 rounded"
+              />
+            </div>
+
+            {/* BUTTONS */}
+            <button
+              type="submit"
+              disabled={saving}
+              className="bg-green-600 text-white px-4 py-2 rounded"
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setEditMode(false)}
+              className="bg-gray-400 text-white px-4 py-2 rounded ml-2"
+            >
+              Cancel
+            </button>
+
           </form>
         )}
       </div>

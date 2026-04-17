@@ -50,14 +50,14 @@ const HomeDashboard = () => {
       : donations.filter(d => d.category === filter);
 
   const handleDonateMoney = () => {
-    toast.success("💖 Thank you! Money donation feature coming soon.");
+    toast.success("Thank you! Money donation feature coming soon.");
   };
 
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">🏠 Home Dashboard</h1>
+        <h1 className="text-2xl font-bold">Home Dashboard</h1>
         <div className="flex gap-2">
           <input
             type="text"
@@ -109,7 +109,7 @@ const HomeDashboard = () => {
       {/* Emotional Section */}
       <div className="bg-gradient-to-r from-pink-100 to-purple-100 p-6 rounded-xl shadow flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
-          <h2 className="text-xl font-bold text-pink-700">💖 Support Beyond Items</h2>
+          <h2 className="text-xl font-bold text-pink-700">Support Beyond Items</h2>
           <p className="text-gray-700">
             Help us serve more by donating money. Your contribution will provide
             essentials to those in need.
