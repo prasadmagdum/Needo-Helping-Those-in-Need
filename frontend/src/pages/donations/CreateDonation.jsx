@@ -25,7 +25,7 @@ const CreateDonation = () => {
   const [dragOver, setDragOver] = useState(false);
 
   const categories = [
-    "Food ",
+    "Food Surplus",
     "Clothes",
     "Educational Items",
     "Medical",
