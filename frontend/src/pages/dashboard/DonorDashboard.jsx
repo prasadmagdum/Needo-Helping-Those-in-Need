@@ -25,7 +25,6 @@ const DonorDashboard = () => {
     const load = async () => {
       try {
         if (user?.role !== "donor") {
-          console.warn("Not a donor, skipping donor dashboard API calls.");
           setLoading(false);
           return;
         }
@@ -49,7 +48,6 @@ const DonorDashboard = () => {
         setRecent(myDonations?.slice(-3).reverse() || []);
         setUrgent(urgentDonations?.filter((d) => d.urgent) || []);
 
-        //  Show confetti when user reaches 5 or more donations
         if (myDonations?.length >= 5) {
           setShowConfetti(true);
           setTimeout(() => setShowConfetti(false), 5000);
@@ -72,42 +70,48 @@ const DonorDashboard = () => {
     );
 
   return (
-    <div className="p-4 md:p-8 space-y-8 max-w-5xl mx-auto relative">
-      {/*  Confetti Celebration */}
-      {showConfetti && <Confetti width={width} height={height} />}
+    <div className="p-4 md:p-8 space-y-8 max-w-5xl mx-auto relative overflow-x-hidden">
+      
+      {/* Confetti Fix */}
+      {showConfetti && (
+        <div className="fixed inset-0 pointer-events-none overflow-hidden z-50">
+          <Confetti width={width} height={height} />
+        </div>
+      )}
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">
-            Welcome back, {user?.name || "Donor"} 
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 w-full">
+        <div className="max-w-full">
+          <h1 className="text-3xl font-bold text-gray-800 break-words">
+            Welcome back, {user?.name || "Donor"}
           </h1>
-          <p className="text-gray-600">
-            Thank you for making a difference every single day 
+          <p className="text-gray-600 break-words">
+            Thank you for making a difference every single day
           </p>
         </div>
+
         <Link
           to="/profile/donor"
-          className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shrink-0"
         >
           View Profile
         </Link>
       </div>
 
-      {/* Motivation / Impact Card */}
+      {/* Motivation */}
       {stats.donations > 0 && (
-        <div className="bg-gradient-to-r from-green-100 to-blue-100 rounded-2xl shadow-lg p-6 flex flex-col md:flex-row items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-              You’re spreading kindness! 
+        <div className="bg-gradient-to-r from-green-100 to-blue-100 rounded-2xl shadow-lg p-6 flex flex-col md:flex-row items-center justify-between w-full overflow-hidden">
+          <div className="max-w-full">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-2 break-words">
+              You’re spreading kindness!
             </h2>
-            <p className="text-gray-700 max-w-lg">
+            <p className="text-gray-700 break-words">
               You’ve made <strong>{stats.donations}</strong> donations and helped{" "}
-              <strong>{stats.livesHelped}</strong> lives. Keep it up to reach your
-              next milestone!
+              <strong>{stats.livesHelped}</strong> lives.
             </p>
           </div>
-          <div className="text-center mt-4 md:mt-0">
+
+          <div className="text-center mt-4 md:mt-0 shrink-0">
             <p className="text-3xl font-bold text-green-700">{stats.score}</p>
             <p className="text-gray-600 text-sm">Impact Score</p>
           </div>
@@ -115,33 +119,40 @@ const DonorDashboard = () => {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
         <div className="bg-white p-5 rounded-xl shadow text-center">
           <p className="text-3xl font-bold text-green-600">{stats.donations}</p>
           <p className="text-gray-600 text-sm">Total Donations</p>
         </div>
+
         <div className="bg-white p-5 rounded-xl shadow text-center">
           <p className="text-3xl font-bold text-orange-500">{stats.completed}</p>
           <p className="text-gray-600 text-sm">Completed</p>
         </div>
+
         <div className="bg-white p-5 rounded-xl shadow text-center">
           <p className="text-3xl font-bold text-sky-500">{stats.livesHelped}</p>
           <p className="text-gray-600 text-sm">Lives Helped</p>
         </div>
+
         <div className="bg-white p-5 rounded-xl shadow text-center">
           <p className="text-3xl font-bold text-purple-600">{stats.score}</p>
           <p className="text-gray-600 text-sm">Impact Score</p>
         </div>
       </div>
 
-      {/* Animated Progress Bar */}
+      {/* Progress */}
       {stats.completed > 0 && (
-        <div className="bg-white p-4 rounded-xl shadow">
-          <p className="text-sm text-gray-700 mb-1">Progress to next level</p>
+        <div className="bg-white p-4 rounded-xl shadow w-full">
+          <p className="text-sm text-gray-700 mb-1">
+            Progress to next level
+          </p>
           <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
             <div
-              className="h-3 bg-green-500 rounded-full transition-all duration-700 ease-in-out"
-              style={{ width: `${Math.min((stats.completed / 10) * 100, 100)}%` }}
+              className="h-3 bg-green-500 rounded-full transition-all duration-700"
+              style={{
+                width: `${Math.min((stats.completed / 10) * 100, 100)}%`,
+              }}
             />
           </div>
           <p className="text-xs text-gray-500 mt-1">
@@ -150,25 +161,27 @@ const DonorDashboard = () => {
         </div>
       )}
 
-      {/* Quick Actions */}
-      <div className="grid md:grid-cols-2 gap-4">
+      {/* Actions */}
+      <div className="grid md:grid-cols-2 gap-4 w-full">
         <Link
           to="/donor/create"
           className="bg-green-600 text-white p-6 rounded-xl shadow hover:bg-green-700 text-center font-medium"
         >
-           Create New Donation
+          Create New Donation
         </Link>
+
         <Link
           to="/donor/my"
           className="bg-indigo-600 text-white p-6 rounded-xl shadow hover:bg-indigo-700 text-center font-medium"
         >
-           View My Donations
+          View My Donations
         </Link>
       </div>
 
-      {/* Recent Donations */}
-      <div>
-        <h2 className="text-xl font-semibold mb-3"> Recent Donations</h2>
+      {/* Recent */}
+      <div className="w-full">
+        <h2 className="text-xl font-semibold mb-3">Recent Donations</h2>
+
         {recent.length === 0 ? (
           <p className="text-gray-500">No recent donations found</p>
         ) : (
@@ -176,21 +189,16 @@ const DonorDashboard = () => {
             {recent.map((d) => (
               <div
                 key={d._id}
-                className="bg-white rounded-lg shadow p-4 flex justify-between items-center"
+                className="bg-white rounded-lg shadow p-4 flex justify-between items-center gap-3 w-full"
               >
-                <div>
-                  <p className="font-semibold">{d.title}</p>
-                  <p className="text-sm text-gray-500">{d.category}</p>
+                <div className="min-w-0">
+                  <p className="font-semibold break-words">{d.title}</p>
+                  <p className="text-sm text-gray-500 break-words">
+                    {d.category}
+                  </p>
                 </div>
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    d.status === "available"
-                      ? "bg-yellow-100 text-yellow-700"
-                      : d.status === "completed"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-gray-100 text-gray-600"
-                  }`}
-                >
+
+                <span className="px-3 py-1 rounded-full text-xs font-medium shrink-0 bg-gray-100 text-gray-700">
                   {d.status}
                 </span>
               </div>
@@ -199,32 +207,38 @@ const DonorDashboard = () => {
         )}
       </div>
 
-      {/* Urgent Requests */}
-      <div>
+      {/* Urgent */}
+      <div className="w-full">
         <h2 className="text-xl font-semibold mb-3 text-red-600">
           Urgent Requests Nearby
         </h2>
+
         {urgent.length === 0 ? (
-          <p className="text-gray-500">No urgent requests at the moment</p>
+          <p className="text-gray-500">No urgent requests</p>
         ) : (
           <div className="space-y-4">
             {urgent.map((u) => (
               <div
                 key={u._id}
-                className="border border-red-200 bg-red-50 rounded-xl p-4 flex justify-between items-center"
+                className="border border-red-200 bg-red-50 rounded-xl p-4 flex justify-between items-center gap-3 w-full"
               >
-                <div>
+                <div className="min-w-0">
                   <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">
                     URGENT
                   </span>
-                  <h3 className="font-bold mt-1">{u.title}</h3>
-                  <p className="text-sm text-gray-600">
+
+                  <h3 className="font-bold mt-1 break-words">
+                    {u.title}
+                  </h3>
+
+                  <p className="text-sm text-gray-600 break-words">
                     {u.description || "No details"}
                   </p>
                 </div>
+
                 <Link
                   to={`/donations/${u._id}`}
-                  className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition"
+                  className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition shrink-0"
                 >
                   Help Now
                 </Link>

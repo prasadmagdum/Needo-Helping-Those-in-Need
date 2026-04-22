@@ -122,21 +122,35 @@ const NGODashboard = () => {
     <div className="p-6 space-y-8 max-w-6xl mx-auto relative">
       {showConfetti && <Confetti width={width} height={height} recycle={false} />}
 
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">NGO Dashboard</h1>
-          <p className="text-gray-600">
-            Welcome back, <span className="font-semibold">{user?.name}</span>
-          </p>
-        </div>
+    {/* Header */}
+    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-800">NGO Dashboard</h1>
+        <p className="text-gray-600">
+          Welcome back, <span className="font-semibold">{user?.name}</span>
+        </p>
+      </div>
 
+      {/* RIGHT SIDE */}
+      <div className="flex items-center gap-2 flex-wrap">
+
+        {/* ✅ ADDED BUTTON */}
+        <Link
+          to="/profile/ngo"
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
+        >
+          View Profile
+        </Link>
+
+        {/* EXISTING BADGE (UNCHANGED) */}
         <div
           className={`inline-block px-4 py-2 rounded-full text-sm font-medium ${statusColor}`}
         >
           {statusLabel}
         </div>
+
       </div>
+    </div>
 
       {/*  Impact Gradient Card */}
       <div
