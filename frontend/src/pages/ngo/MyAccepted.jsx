@@ -54,7 +54,7 @@ const MyAccepted = () => {
 
   if (!items) {
     return (
-      <div className="flex items-center justify-center gap-2 text-gray-600 p-6">
+      <div className="flex items-center justify-center gap-2 text-gray-600 p-4">
         <Loader2 className="animate-spin" />
         Loading accepted donations...
       </div>
@@ -75,7 +75,7 @@ const MyAccepted = () => {
         });
 
   return (
-    <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
+    <div className="p-1 md:p-4 bg-gray-50 min-h-screen">
       {/* Title */}
       <div className="flex items-center gap-2 mb-5">
         <ClipboardCheck className="text-sky-600 w-6 h-6" />
@@ -91,7 +91,7 @@ const MyAccepted = () => {
             <button
               key={tab}
               onClick={() => setFilter(tab)}
-              className={`whitespace-nowrap px-4 py-2 text-xs md:text-sm font-medium rounded-full transition ${
+              className={`whitespace-nowrap px-2 py-2 text-xs md:text-sm font-medium rounded-full transition ${
                 filter === tab
                   ? "bg-orange-500 text-white"
                   : "text-gray-700 hover:bg-orange-100"
@@ -117,7 +117,7 @@ const MyAccepted = () => {
         </div>
       ) : (
         /* Cards */
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-4">
           {filteredItems.map((a) => {
             const donation = a.donation || {};
             const donor = a.donor || {};
