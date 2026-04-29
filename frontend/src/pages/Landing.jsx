@@ -255,11 +255,11 @@ useEffect(() => {
       </section>
 
       {/* IMPACT */}
-      <section className="bg-white py-24 text-center">
-        <div className="max-w-7xl mx-auto px-6">
+      {/* <section className="bg-white py-24 text-center">
+        <div className="max-w-7xl mx-auto px-6"> */}
 
           {/* TITLE */}
-          <h2 className="text-4xl md:text-5xl font-extrabold mb-16 text-center 
+          {/* <h2 className="text-4xl md:text-5xl font-extrabold mb-16 text-center 
                bg-gradient-to-r from-green-500 via-emerald-400 to-green-500 
                text-transparent bg-clip-text relative inline-block">Our Impact</h2>
 
@@ -290,7 +290,7 @@ useEffect(() => {
           )}
 
         </div>
-      </section>
+      </section> */}
 
       <section className="bg-green-50 py-24 text-center">
         <div className="max-w-4xl mx-auto px-6">
